@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scene Visualizer
+
+A Next.js 14 application for generating image prompts for scene-based storytelling using the DeepSeek Chat model.
+
+## Features
+
+- Split scripts into scenes automatically
+- Generate AI-powered image prompts for each scene
+- Maintain visual continuity between scenes
+- Copy prompts for use in image generation tools
+- Server-side rendering (SSR) for improved performance
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18.17 or later
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/scene-visualize-next.git
+cd scene-visualize-next
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create a `.env.local` file in the root directory with your DeepSeek API key:
+```
+DEEP_SEEK_API=your_deepseek_api_key
+```
+
+### Development
+
+Run the development server:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Build the application for production:
+```bash
+npm run build
+```
 
-## Learn More
+Start the production server:
+```bash
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## How It Works
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Enter your script on the home page
+2. The system splits your script into scenes of approximately 18 words each
+3. AI generates image prompts for each scene, maintaining continuity
+4. You can customize the base prompt style and generate individual or all prompts
+5. Copy the generated prompts to use with image generation tools
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Endpoints
 
-## Deploy on Vercel
+- `/api/generate-prompt` - Generate a prompt for a single scene
+- `/api/generate-all-prompts` - Generate prompts for all scenes in batch
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Technologies Used
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- OpenAI SDK (configured for DeepSeek API)
+- Server-Side Rendering (SSR)
+
+## Migration from Vite
+
+This project was migrated from a Vite-based React application to Next.js 14 to leverage built-in server-side rendering capabilities. The migration involved:
+
+1. Creating a new Next.js 14 project structure
+2. Implementing API routes for prompt generation
+3. Migrating React components and utilities
+4. Configuring environment variables
+5. Updating the styling and UI components
+
+The server-side implementation now uses Next.js API routes instead of a separate Express server, simplifying the architecture while maintaining the same functionality.
