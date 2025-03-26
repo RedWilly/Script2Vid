@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { generateImagePrompt, generateAllImagePrompts } from "@/services/aiService";
 import Link from "next/link";
 import { toast } from "sonner";
+import { IMAGE_STYLE_PREFIX } from "@/lib/constants";
 
 interface Scene {
   text: string;
@@ -15,10 +16,9 @@ interface Scene {
 export default function SceneVisualizer() {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
-  const [basePrompt, setBasePrompt] = useState(
-    "Visualize this in a simple doodle 2D style with black ink on a white background in an extremely minimalistic approach."
-  );
+  const [basePrompt, setBasePrompt] = useState(IMAGE_STYLE_PREFIX);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   useEffect(() => {
     // Get script from localStorage instead of URL parameters
@@ -29,35 +29,45 @@ export default function SceneVisualizer() {
       return;
     }
     
-    // Improved scene splitting algorithm
-    function splitScript(script: string, maxWordsPerScene: number = 19): string[] {
-      if (!script || maxWordsPerScene < 1) return [];
+    // Improved scene splitting algorithm based on sentences
+    function splitScript(script: string, maxWordsPerSentence: number = 35): string[] {
+      if (!script) return [];
       
-      // Split script into sentences using improved regex
+      // Regular expression that respects honorifics (Mr., Mrs., Dr., etc.)
+      const honorificsRegex = /(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Sgt|Capt|Lt|Col|Gen|Adm|Sen|Rep|Gov|Atty|Supt|Det|Insp)\.)(?<=[.!?])\s+(?=[A-Z])/g;
+      
+      // Split script into sentences using regex that respects honorifics
       const sentences: string[] = script
-          .split(/(?<=[.!?])\s+(?=[A-Z])/g)
+          .split(honorificsRegex)
           .map(sentence => sentence.trim())
           .filter(sentence => sentence.length > 0);
       
-      if (sentences.length === 0) {
-          sentences.push(script.trim());
-      }
-      
-      // Split into words to determine scene count
-      const words: string[] = script.split(/\s+/).filter(word => word.length > 0);
-      const totalWords: number = words.length;
-      if (totalWords === 0) return [];
-      
-      const numScenes: number = Math.ceil(totalWords / maxWordsPerScene);
-      const wordsPerScene: number = Math.ceil(totalWords / numScenes);
       const scenes: string[] = [];
       
-      for (let i = 0; i < numScenes; i++) {
-          const start: number = i * wordsPerScene;
-          const end: number = Math.min(start + wordsPerScene, totalWords);
-          if (start >= totalWords) break;
-          const sceneText: string = words.slice(start, end).join(' ').trim();
-          scenes.push(sceneText);
+      // Process each sentence
+      for (const sentence of sentences) {
+        // Count words in the sentence
+        const wordCount = sentence.split(/\s+/).filter(word => word.length > 0).length;
+        
+        // If sentence is longer than maxWordsPerSentence, split it
+        if (wordCount > maxWordsPerSentence) {
+          // Split long sentence into chunks of approximately equal size
+          const words = sentence.split(/\s+/).filter(word => word.length > 0);
+          const numChunks = Math.ceil(wordCount / maxWordsPerSentence);
+          const wordsPerChunk = Math.ceil(wordCount / numChunks);
+          
+          for (let i = 0; i < numChunks; i++) {
+            const start = i * wordsPerChunk;
+            const end = Math.min(start + wordsPerChunk, words.length);
+            if (start < words.length) {
+              const chunk = words.slice(start, end).join(' ');
+              scenes.push(chunk);
+            }
+          }
+        } else {
+          // Add the sentence as a scene
+          scenes.push(sentence);
+        }
       }
       
       return scenes;
@@ -76,8 +86,13 @@ export default function SceneVisualizer() {
   }, []);
 
   const generatePrompt = async (sceneIndex: number) => {
+    // This function now does nothing
+    console.log("Generate button clicked - no action taken");
+  };
+
+  const prepareScene = async (sceneIndex: number) => {
     if (sceneIndex >= 0 && sceneIndex < scenes.length) {
-      setIsGenerating(true);
+      setIsPreparing(true);
       
       try {
         const scene = scenes[sceneIndex];
@@ -95,9 +110,9 @@ export default function SceneVisualizer() {
           });
         } catch (error) {
           // If AI generation fails, use the base prompt as fallback
-          console.error("AI generation failed, using fallback:", error);
+          console.error("AI preparation failed, using fallback:", error);
           aiGeneratedPrompt = `${basePrompt} ${scene.text} --16:9`;
-          toast.error("AI generation failed. Using default prompt.");
+          toast.error("AI preparation failed. Using default prompt.");
         }
         
         // Update the scene with the generated prompt
@@ -108,12 +123,12 @@ export default function SceneVisualizer() {
         };
         
         setScenes(updatedScenes);
-        toast.success("Prompt generated!");
+        toast.success("Scene prepared!");
       } catch (error) {
-        console.error("Error in prompt generation:", error);
-        toast.error("Failed to generate prompt. Please try again.");
+        console.error("Error in scene preparation:", error);
+        toast.error("Failed to prepare scene. Please try again.");
       } finally {
-        setIsGenerating(false);
+        setIsPreparing(false);
       }
     }
   };
@@ -123,36 +138,25 @@ export default function SceneVisualizer() {
     toast.success("Copied to clipboard!");
   };
 
-  const updateBasePrompt = (newBasePrompt: string) => {
-    setBasePrompt(newBasePrompt);
-    
-    // Update all existing prompts with the new base prompt
-    const updatedScenes = scenes.map(scene => {
-      if (scene.prompt) {
-        return {
-          ...scene,
-          prompt: `${newBasePrompt} ${scene.text} --16:9`
-        };
-      }
-      return scene;
-    });
-    
-    setScenes(updatedScenes);
-  };
 
   const generateAllPrompts = async () => {
-    setIsGenerating(true);
+    // This function now does nothing
+    console.log("Generate All button clicked - no action taken");
+  };
+
+  const prepareAllScenes = async () => {
+    setIsPreparing(true);
     
     try {
       // Use the service to generate all prompts at once
       const updatedScenes = await generateAllImagePrompts(scenes);
       setScenes(updatedScenes);
-      toast.success("All prompts generated!");
+      toast.success("All scenes prepared!");
     } catch (error) {
-      console.error("Error generating all prompts:", error);
-      toast.error("Failed to generate all prompts. Please try again.");
+      console.error("Error preparing all scenes:", error);
+      toast.error("Failed to prepare all scenes. Please try again.");
     } finally {
-      setIsGenerating(false);
+      setIsPreparing(false);
     }
   };
 
@@ -197,6 +201,31 @@ export default function SceneVisualizer() {
                   )}
                 </Button>
               </div>
+              {/* Prepare All button on desktop only */}
+              <div className="hidden sm:block mr-2">
+                <Button 
+                  onClick={prepareAllScenes}
+                  disabled={isPreparing}
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
+                >
+                  {isPreparing ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="truncate">Preparing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                      </svg>
+                      <span className="truncate">Prepare All</span>
+                    </>
+                  )}
+                </Button>
+              </div>
               <Link href="/">
                 <Button 
                   variant="outline" 
@@ -220,7 +249,7 @@ export default function SceneVisualizer() {
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                  <path d="M7 3a1 1 0 011-1h2a1 1 0 110 2H9v7a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1 1 1 0 012 0v.34a4 4 0 001.576 2.812l-3.632 7.283A4 4 0 0011 16V9a1 1 0 012 0v7a1 1 0 01-2 0V9.34a4 4 0 00-1.576-2.812L7 5.5a1 1 0 00-1-1z" />
                 </svg>
                 Scenes ({scenes.length})
               </h2>
@@ -353,7 +382,7 @@ export default function SceneVisualizer() {
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                     <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 10-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                       </svg>
                       Image Prompt
                     </h2>
@@ -377,6 +406,28 @@ export default function SceneVisualizer() {
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                             </svg>
                             <span className="truncate">Generate</span>
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={() => prepareScene(selectedSceneIndex)}
+                        disabled={isPreparing}
+                        className="bg-green-600 hover:bg-green-700 text-white rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 flex-1 sm:flex-auto justify-center"
+                      >
+                        {isPreparing ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="truncate">Preparing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                            </svg>
+                            <span className="truncate">Prepare</span>
                           </>
                         )}
                       </Button>

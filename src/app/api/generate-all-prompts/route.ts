@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { ChatCompletionMessageParam } from 'openai/resources';
+import { IMAGE_STYLE_PREFIX } from '@/lib/constants';
 
 // Initialize the OpenAI client with DeepSeek API configuration
 const openai = new OpenAI({
@@ -66,8 +67,7 @@ export async function POST(request: Request) {
         const generatedPrompt = completion.choices[0]?.message?.content || '';
         
         // Add the style prefix and the --16:9 format specification
-        const stylePrefix = "Visualize this in a simple doodle 2D style with black ink on a white background in an extremely minimalistic approach.";
-        const formattedPrompt = `${stylePrefix} ${generatedPrompt.trim()} --16:9`;
+        const formattedPrompt = `${IMAGE_STYLE_PREFIX} ${generatedPrompt.trim()} --16:9`;
         
         updatedScenes[i] = {
           ...scene,
