@@ -27,6 +27,7 @@ export default function StoryBoard() {
   const [isDraggingLeftTrim, setIsDraggingLeftTrim] = useState(false);
   const [isDraggingRightTrim, setIsDraggingRightTrim] = useState(false);
   const [trimmingSceneIndex, setTrimmingSceneIndex] = useState<number | null>(null);
+  const [activeTrimDuration, setActiveTrimDuration] = useState<number | null>(null);
 
   const timelineRulerRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
@@ -251,17 +252,20 @@ export default function StoryBoard() {
       setIsDraggingRightTrim(true);
     }
 
+    // Get the thumbnail element being trimmed
+    const thumbnailElement = document.querySelector(`[data-scene-index="${index}"]`) as HTMLElement;
+    if (!thumbnailElement) {
+      console.error("Could not find thumbnail element for trimming");
+      return;
+    }
+
     // Initial scene data
     const originalScene = scenes[index];
-    const originalStartTime = getSceneStartTime(index, scenes);
-    const originalEndTime = originalStartTime + originalScene.duration;
-    
-    // Store initial mouse position for reference
+    const originalDuration = originalScene.duration;
+    const thumbnailWidth = thumbnailElement.offsetWidth;
     const initialMouseX = e.clientX;
-    const timelineRect = timelineRulerRef.current?.getBoundingClientRect();
-    const timelineWidth = timelineRect?.width || 1;
     
-    console.log(`Trim start - Scene: ${index + 1}, Duration: ${originalScene.duration}s, Timeline width: ${timelineWidth}px`);
+    console.log(`Trim start - Scene: ${index + 1}, Duration: ${originalScene.duration}s, Thumbnail width: ${thumbnailWidth}px`);
 
     // Mouse move handler for trimming
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -269,59 +273,49 @@ export default function StoryBoard() {
         moveEvent.preventDefault();
         moveEvent.stopPropagation();
         
-        // Skip if timeline reference is missing or no scene is being trimmed
-        if (!timelineRulerRef.current || trimmingSceneIndex === null) return;
+        // Skip if no scene is being trimmed
+        if (trimmingSceneIndex === null) return;
 
-        // Calculate mouse position relative to timeline
-        const rect = timelineRulerRef.current.getBoundingClientRect();
-        const moveX = moveEvent.clientX - rect.left;
-        const percentage = Math.max(0, Math.min(moveX / rect.width, 1));
-        const mouseTime = percentage * totalDuration;
+        // Calculate mouse movement delta
+        const deltaX = moveEvent.clientX - initialMouseX;
         
-        // Update scenes with new duration
-        setScenes(currentScenes => {
-            const sceneToTrim = currentScenes[trimmingSceneIndex];
-            if (!sceneToTrim) return currentScenes; // Safety check
-
-            let newDuration = sceneToTrim.duration;
-            const currentStartTime = getSceneStartTime(trimmingSceneIndex, currentScenes);
-            const currentEndTime = currentStartTime + sceneToTrim.duration;
-
-            if (handleType === 'left') {
-                // Left handle - adjusts start time, affecting duration
+        // Convert pixel movement to time (based on thumbnail width)
+        // Scale factor: 1 pixel movement = (originalDuration / thumbnailWidth) seconds
+        const timePerPixel = originalDuration / thumbnailWidth;
+        let timeDelta = deltaX * timePerPixel;
+        
+        // For left handle, movement is inverted (left = increase start time = decrease duration)
+        if (handleType === 'left') {
+            timeDelta = -timeDelta;
+        }
+        
+        // Calculate new duration
+        let newDuration = Math.max(MIN_SCENE_DURATION, originalDuration + timeDelta);
+        
+        // Apply constraints based on handle type
+        if (handleType === 'left') {
+            // For left handle, check if we're pushing against previous scene
+            if (index > 0) {
+                const prevScene = scenes[index - 1];
+                const prevSceneEnd = getSceneStartTime(index, scenes);
+                const maxReduction = originalScene.duration - MIN_SCENE_DURATION;
+                const maxAllowedReduction = Math.min(maxReduction, prevSceneEnd);
                 
-                // Ensure new start time doesn't exceed end time minus minimum duration
-                const maxValidStartTime = currentEndTime - MIN_SCENE_DURATION;
-                const newStartTime = Math.min(maxValidStartTime, mouseTime);
-
-                // Ensure new start time doesn't go before the previous scene ends
-                const prevSceneEndTime = trimmingSceneIndex > 0
-                    ? getSceneStartTime(trimmingSceneIndex - 1, currentScenes) + currentScenes[trimmingSceneIndex - 1].duration
-                    : 0;
-                const clampedStartTime = Math.max(prevSceneEndTime, newStartTime);
-
-                // Calculate new duration and update current time
-                newDuration = currentEndTime - clampedStartTime;
-                setCurrentTime(clampedStartTime); // Move playhead to the handle
-                
-                console.log(`Left trim - New start: ${clampedStartTime.toFixed(1)}s, New duration: ${newDuration.toFixed(1)}s`);
-
-            } else { // Right handle - directly adjusts end time/duration
-                // Ensure new end time is at least minimum duration after start time
-                const minValidEndTime = currentStartTime + MIN_SCENE_DURATION;
-                const newEndTime = Math.max(minValidEndTime, mouseTime);
-
-                // Calculate new duration and update current time
-                newDuration = newEndTime - currentStartTime;
-                setCurrentTime(newEndTime); // Move playhead to the handle
-                
-                console.log(`Right trim - New end: ${newEndTime.toFixed(1)}s, New duration: ${newDuration.toFixed(1)}s`);
+                // Limit how much we can reduce from the left
+                if (timeDelta > maxAllowedReduction) {
+                    newDuration = originalDuration - maxAllowedReduction;
+                }
             }
-
-            // Final validation of duration
-            newDuration = Math.max(MIN_SCENE_DURATION, newDuration);
-
-            // Only update if the duration actually changed
+        }
+        
+        // Update the scene with new duration
+        setScenes(currentScenes => {
+            // Skip if scene index is invalid
+            if (trimmingSceneIndex >= currentScenes.length) return currentScenes;
+            
+            const sceneToTrim = currentScenes[trimmingSceneIndex];
+            
+            // Only update if duration actually changed
             if (Math.abs(newDuration - sceneToTrim.duration) > 0.01) {
                 const updatedScenes = [...currentScenes];
                 updatedScenes[trimmingSceneIndex] = { 
@@ -331,11 +325,37 @@ export default function StoryBoard() {
                 
                 // Recalculate total duration with the updated scenes
                 recalculateTotalDuration(updatedScenes);
+                
+                // Update current time to match the handle position
+                if (handleType === 'left') {
+                    const newStartTime = getSceneStartTime(trimmingSceneIndex, updatedScenes);
+                    setCurrentTime(newStartTime);
+                } else {
+                    const newStartTime = getSceneStartTime(trimmingSceneIndex, updatedScenes);
+                    setCurrentTime(newStartTime + newDuration);
+                }
+                
                 return updatedScenes;
             }
-
-            return currentScenes; // No change needed
+            
+            return currentScenes;
         });
+        
+        // Visual feedback during trimming
+        if (handleType === 'left') {
+            // Left handle - adjust width and transform
+            const scaleX = newDuration / originalDuration;
+            thumbnailElement.style.transform = `scaleX(${scaleX})`;
+            thumbnailElement.style.transformOrigin = 'right';
+        } else {
+            // Right handle - just adjust width
+            const scaleX = newDuration / originalDuration;
+            thumbnailElement.style.transform = `scaleX(${scaleX})`;
+            thumbnailElement.style.transformOrigin = 'left';
+        }
+        
+        // Update active trim duration
+        setActiveTrimDuration(newDuration);
     };
 
     // Mouse up handler to end trimming
@@ -343,6 +363,14 @@ export default function StoryBoard() {
         // Prevent default browser behavior
         upEvent.preventDefault();
         upEvent.stopPropagation();
+        
+        // Reset visual transformation
+        if (thumbnailElement) {
+            thumbnailElement.style.transform = '';
+        }
+        
+        // Reset active trim duration
+        setActiveTrimDuration(null);
         
         // Determine if we were actually dragging
         let wasDragging = false;
@@ -369,8 +397,16 @@ export default function StoryBoard() {
             // Get the final scene after trimming
             const finalScene = scenes[index];
             
-            // Notify user of the update
-            toast.info(`Scene ${index + 1} duration updated to ${finalScene.duration.toFixed(1)}s`);
+            // Notify user of the update with a nice animation
+            toast.success(
+                <div className="flex items-center gap-2">
+                    <span>Scene {index + 1} duration: </span>
+                    <span className="font-mono bg-gray-800 px-1.5 py-0.5 rounded text-purple-300">
+                        {finalScene.duration.toFixed(1)}s
+                    </span>
+                </div>, 
+                { duration: 2000 }
+            );
             
             // Ensure the timeline reflects the final state
             recalculateTotalDuration(scenes);
@@ -666,7 +702,7 @@ const handleDeleteScene = (indexToDelete: number) => {
           </Button>
           <Link href="/scene-visualizer">
             <Button variant="outline" className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-sm sm:text-base">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" /></svg>
               <span className="truncate">Back</span>
             </Button>
           </Link>
@@ -823,7 +859,7 @@ const handleDeleteScene = (indexToDelete: number) => {
                      <>
                        {/* Left Handle */}
                        <div
-                         className="absolute top-0 left-0 bottom-0 w-4 bg-purple-600/70 hover:bg-purple-500/90 cursor-ew-resize z-20 rounded-l-sm"
+                         className="absolute top-0 left-0 bottom-0 w-5 bg-gradient-to-r from-purple-600/90 to-purple-600/50 hover:from-purple-500 hover:to-purple-500/70 cursor-ew-resize z-20 rounded-l-sm flex items-center justify-center transition-all duration-150 group/handle"
                          onMouseDown={(e) => {
                            e.stopPropagation();
                            handleTrimMouseDown(e, index, 'left');
@@ -832,12 +868,13 @@ const handleDeleteScene = (indexToDelete: number) => {
                          data-handle="left"
                          data-scene-index={index}
                        >
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-px bg-white/70"></div> {/* Vertical line indicator */}
+                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150"></div>
+                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150 rotate-90"></div>
                        </div>
 
                        {/* Right Handle */}
                        <div
-                         className="absolute top-0 right-0 bottom-0 w-4 bg-purple-600/70 hover:bg-purple-500/90 cursor-ew-resize z-20 rounded-r-sm"
+                         className="absolute top-0 right-0 bottom-0 w-5 bg-gradient-to-l from-purple-600/90 to-purple-600/50 hover:from-purple-500 hover:to-purple-500/70 cursor-ew-resize z-20 rounded-r-sm flex items-center justify-center transition-all duration-150 group/handle"
                          onMouseDown={(e) => {
                            e.stopPropagation();
                            handleTrimMouseDown(e, index, 'right');
@@ -846,13 +883,20 @@ const handleDeleteScene = (indexToDelete: number) => {
                          data-handle="right"
                          data-scene-index={index}
                        >
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-px bg-white/70"></div> {/* Vertical line indicator */}
+                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150"></div>
+                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150 rotate-90"></div>
                        </div>
 
                        {/* Duration Display on Selected */}
-                        <div className="absolute top-0 right-3 bg-black bg-opacity-60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-b-md pointer-events-none">
+                        <div className="absolute top-0 right-0 left-0 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 text-center pointer-events-none">
                             {formatDuration(scene.duration)}
                         </div>
+                        {/* Active Trim Duration Display */}
+                        {activeTrimDuration !== null && (
+                          <div className="absolute top-0 right-0 left-0 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 text-center pointer-events-none">
+                            {formatDuration(activeTrimDuration)}
+                          </div>
+                        )}
                      </>
                    )}
 
