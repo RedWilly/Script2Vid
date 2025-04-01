@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { generateImagePrompt, generateAllImagePrompts } from "@/services/aiService";
 import { generateImage, generateAllImages } from '@/utils/imageGenerator';
-import { generateVideo as generateVideoFromScenes } from '@/utils/videoGenerator';
 import Link from "next/link";
 import { toast } from "sonner";
 import { IMAGE_STYLE_PREFIX } from "@/lib/constants";
@@ -18,8 +17,6 @@ export default function SceneVisualizer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -223,41 +220,6 @@ export default function SceneVisualizer() {
     }
   };
 
-  const handleVideoGeneration = async () => {
-    // Check if all scenes have images
-    const missingImages = scenes.filter(scene => !scene.imageUrl);
-    if (missingImages.length > 0) {
-      toast.error(`${missingImages.length} scenes are missing images. Generate images for all scenes first.`);
-      return;
-    }
-    
-    setIsGeneratingVideo(true);
-    
-    try {
-      // Generate a filename based on current date/time
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `scene-video-${timestamp}`;
-      
-      // Call the video generation function
-      const url = await generateVideoFromScenes(
-        scenes,
-        filename,
-        5 // Default duration per scene in seconds
-      );
-      
-      setVideoUrl(url);
-      toast.success("Video generated successfully!");
-      
-      // Open the video in a new tab
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error("Error generating video:", error);
-      toast.error("Failed to generate video. Please try again.");
-    } finally {
-      setIsGeneratingVideo(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       <header className="bg-gradient-to-r from-gray-900/90 to-black/90 backdrop-blur-sm border-b border-gray-800 py-4 sticky top-0 z-10 shadow-lg">
@@ -300,30 +262,17 @@ export default function SceneVisualizer() {
                 </Button>
               </div>
               
-              {/* Generate Video button */}
+              {/* StoryBoard button */}
               <div className="hidden sm:block mr-2">
                 <Button 
-                  onClick={handleVideoGeneration}
-                  disabled={isGeneratingVideo || scenes.length === 0 || scenes.some(scene => !scene.imageUrl)}
+                  onClick={() => toast.info("StoryBoard feature coming soon!")}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
-                  {isGeneratingVideo ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span className="truncate">Creating Video...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                        <path d="M14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                      </svg>
-                      <span className="truncate">Create Video</span>
-                    </>
-                  )}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                    <path d="M14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                  </svg>
+                  <span className="truncate">StoryBoard</span>
                 </Button>
               </div>
               <Link href="/">
