@@ -394,22 +394,29 @@ export default function StoryBoard() {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
             
-            // Get the final scene after trimming
-            const finalScene = scenes[index];
-            
-            // Notify user of the update with a nice animation
-            toast.success(
-                <div className="flex items-center gap-2">
-                    <span>Scene {index + 1} duration: </span>
-                    <span className="font-mono bg-gray-800 px-1.5 py-0.5 rounded text-purple-300">
-                        {finalScene.duration.toFixed(1)}s
-                    </span>
-                </div>, 
-                { duration: 2000 }
-            );
-            
-            // Ensure the timeline reflects the final state
-            recalculateTotalDuration(scenes);
+            // Get the LATEST scene after trimming - use a callback to ensure we have the most recent state
+            setScenes(currentScenes => {
+                // Get the final scene with the updated duration
+                const updatedScene = currentScenes[index];
+                
+                // Only show notification if we have a valid scene
+                if (updatedScene) {
+                    // Notify user of the update with a nice animation - ONLY PLACE we show the toast
+                    toast.success(
+                        <div className="flex items-center gap-2">
+                            <span>Scene {index + 1} duration: </span>
+                            <span className="font-mono bg-gray-800 px-1.5 py-0.5 rounded text-purple-300">
+                                {updatedScene.duration.toFixed(1)}s
+                            </span>
+                        </div>, 
+                        { duration: 2000, id: `trim-scene-${index}` }
+                    );
+                }
+                
+                // Ensure the timeline reflects the final state
+                recalculateTotalDuration(currentScenes);
+                return currentScenes; // Return unchanged
+            });
         }
     };
 
