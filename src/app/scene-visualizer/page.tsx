@@ -265,7 +265,21 @@ export default function SceneVisualizer() {
               {/* StoryBoard button */}
               <div className="hidden sm:block mr-2">
                 <Button 
-                  onClick={() => toast.info("StoryBoard feature coming soon!")}
+                  onClick={() => {
+                    // Add default duration to scenes before saving to localStorage
+                    const scenesWithDuration = scenes.map(scene => ({
+                      ...scene,
+                      duration: scene.duration || 5.0  // Default 5 second duration if not set
+                    }));
+                    
+                    // Save scenes to localStorage for the StoryBoard page to access
+                    localStorage.setItem('scriptVizScenes', JSON.stringify(scenesWithDuration));
+                    console.log("Saving scenes to localStorage for StoryBoard:", scenesWithDuration);
+                    
+                    // Navigate to the StoryBoard page
+                    window.location.href = '/storyboard';
+                  }}
+                  disabled={scenes.filter(scene => scene.imageUrl).length === 0}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -275,6 +289,33 @@ export default function SceneVisualizer() {
                   <span className="truncate">StoryBoard</span>
                 </Button>
               </div>
+              {/* Mobile StoryBoard button
+              <div className="block sm:hidden ml-2">
+                <Button 
+                  onClick={() => {
+                    // Add default duration to scenes before saving to localStorage
+                    const scenesWithDuration = scenes.map(scene => ({
+                      ...scene,
+                      duration: scene.duration || 5.0 // Default 5 second duration if not set
+                    }));
+                    
+                    // Save scenes to localStorage for the StoryBoard page to access
+                    localStorage.setItem('scriptVizScenes', JSON.stringify(scenesWithDuration));
+                    console.log("Saving scenes to localStorage for StoryBoard (mobile):", scenesWithDuration);
+                    
+                    // Navigate to the StoryBoard page
+                    window.location.href = '/storyboard';
+                  }}
+                  disabled={scenes.filter(scene => scene.imageUrl).length === 0}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 text-xs"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                    <path d="M14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                  </svg>
+                  <span className="truncate">StoryBoard</span>
+                </Button>
+              </div> */}
               <Link href="/">
                 <Button 
                   variant="outline" 

@@ -8,4 +8,5 @@ export interface Scene {
   prompt?: string;  // The prompt used for image generation
   imageUrl?: string; // URL to the generated image
   seed?: number;    // Seed used for image generation
+  duration?: number; // Duration of the scene in seconds for storyboard
 }

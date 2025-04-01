@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * This API route is a stub as Remotion has been removed from the project
+ * This API route is a stub 
  * The video generation functionality is no longer available
  */
 export async function POST(request: NextRequest) {
