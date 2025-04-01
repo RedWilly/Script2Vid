@@ -223,149 +223,164 @@ export default function StoryBoard() {
   };
 
   // --- Trimming Logic ---
-// --- Trimming Logic ---
-const handleTrimMouseDown = (
-  e: React.MouseEvent<HTMLDivElement>,
-  index: number,
-  handleType: 'left' | 'right'
-) => {
-  // Prevent any default browser behavior
-  e.preventDefault();
-  e.stopPropagation();
-
-  console.log(`Starting trim operation on scene ${index + 1}, handle: ${handleType}`);
-
-  // Force select this scene if not already selected
-  if (index !== selectedSceneIndex) {
-    console.log(`Forcing selection of scene ${index + 1} for trimming`);
-    handleSceneSelect(index, true);
-  }
-
-  // Set trimming state
-  setTrimmingSceneIndex(index);
-  setIsPlaying(false); // Pause playback
-
-  // Set the appropriate drag flag
-  if (handleType === 'left') {
-    setIsDraggingLeftTrim(true);
-  } else {
-    setIsDraggingRightTrim(true);
-  }
-
-  // Capture the scene index locally for use in event handlers
-  const trimmingIndex = index;
-
-  // Initial scene data
-  const originalScene = scenes[trimmingIndex];
-  const originalStartTime = getSceneStartTime(trimmingIndex, scenes);
-  const originalEndTime = originalStartTime + originalScene.duration;
-
-  // Instead of using timelineRulerRef, use timelineRowRef here
-  const timelineRect = timelineRowRef.current?.getBoundingClientRect();
-  const timelineWidth = timelineRect?.width || 1;
-
-  console.log(`Trim start - Scene: ${trimmingIndex + 1}, Duration: ${originalScene.duration}s, Timeline width: ${timelineWidth}px`);
-
-  // Mouse move handler for trimming
-  const handleMouseMove = (moveEvent: MouseEvent) => {
-    moveEvent.preventDefault();
-    moveEvent.stopPropagation();
-
-    if (!timelineRowRef.current) return;
-
-    // Use timelineRowRef for calculating the mouse position
-    const rect = timelineRowRef.current.getBoundingClientRect();
-    const moveX = moveEvent.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(moveX / rect.width, 1));
-    const mouseTime = percentage * totalDuration;
-
-    // Update scenes with new duration
-    setScenes(currentScenes => {
-      const sceneToTrim = currentScenes[trimmingIndex];
-      if (!sceneToTrim) return currentScenes; // Safety check
-
-      let newDuration = sceneToTrim.duration;
-      const currentStartTime = getSceneStartTime(trimmingIndex, currentScenes);
-      const currentEndTime = currentStartTime + sceneToTrim.duration;
-
-      if (handleType === 'left') {
-        // Left handle - adjusts start time, affecting duration
-        const maxValidStartTime = currentEndTime - MIN_SCENE_DURATION;
-        const newStartTime = Math.min(maxValidStartTime, mouseTime);
-
-        // Ensure new start time doesn't go before the previous scene ends
-        const prevSceneEndTime = trimmingIndex > 0
-          ? getSceneStartTime(trimmingIndex - 1, currentScenes) + currentScenes[trimmingIndex - 1].duration
-          : 0;
-        const clampedStartTime = Math.max(prevSceneEndTime, newStartTime);
-
-        // Calculate new duration and update current time
-        newDuration = currentEndTime - clampedStartTime;
-        setCurrentTime(clampedStartTime);
-
-        console.log(`Left trim - New start: ${clampedStartTime.toFixed(1)}s, New duration: ${newDuration.toFixed(1)}s`);
-      } else {
-        // Right handle - directly adjusts end time/duration
-        const minValidEndTime = currentStartTime + MIN_SCENE_DURATION;
-        const newEndTime = Math.max(minValidEndTime, mouseTime);
-
-        newDuration = newEndTime - currentStartTime;
-        setCurrentTime(newEndTime);
-
-        console.log(`Right trim - New end: ${newEndTime.toFixed(1)}s, New duration: ${newDuration.toFixed(1)}s`);
-      }
-
-      // Final validation of duration
-      newDuration = Math.max(MIN_SCENE_DURATION, newDuration);
-
-      // Only update if the duration actually changed
-      if (Math.abs(newDuration - sceneToTrim.duration) > 0.01) {
-        const updatedScenes = [...currentScenes];
-        updatedScenes[trimmingIndex] = { 
-          ...sceneToTrim, 
-          duration: newDuration 
-        };
-
-        // Recalculate total duration with the updated scenes
-        recalculateTotalDuration(updatedScenes);
-        return updatedScenes;
-      }
-      return currentScenes; // No change needed
-    });
-  };
-
-  // Mouse up handler to end trimming
-  const handleMouseUp = (upEvent: MouseEvent) => {
-    upEvent.preventDefault();
-    upEvent.stopPropagation();
-
-    let wasDragging = false;
-    if (handleType === 'left' && isDraggingLeftTrim) {
-      setIsDraggingLeftTrim(false);
-      wasDragging = true;
-      console.log("Left trim completed");
-    } else if (handleType === 'right' && isDraggingRightTrim) {
-      setIsDraggingRightTrim(false);
-      wasDragging = true;
-      console.log("Right trim completed");
+  const handleTrimMouseDown = (
+    e: React.MouseEvent<HTMLDivElement>,
+    index: number,
+    handleType: 'left' | 'right'
+  ) => {
+    // Prevent any default browser behavior
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log(`Starting trim operation on scene ${index + 1}, handle: ${handleType}`);
+    
+    // Force select this scene if not already selected
+    if (index !== selectedSceneIndex) {
+      console.log(`Forcing selection of scene ${index + 1} for trimming`);
+      handleSceneSelect(index, true);
     }
 
-    if (wasDragging) {
-      setTrimmingSceneIndex(null);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+    // Set trimming state
+    setTrimmingSceneIndex(index);
+    setIsPlaying(false); // Pause playback
 
-      const finalScene = scenes[trimmingIndex];
-      toast.info(`Scene ${trimmingIndex + 1} duration updated to ${finalScene.duration.toFixed(1)}s`);
-      recalculateTotalDuration(scenes);
+    // Set the appropriate drag flag
+    if (handleType === 'left') {
+      setIsDraggingLeftTrim(true);
+    } else {
+      setIsDraggingRightTrim(true);
     }
+
+    // Initial scene data
+    const originalScene = scenes[index];
+    const originalStartTime = getSceneStartTime(index, scenes);
+    const originalEndTime = originalStartTime + originalScene.duration;
+    
+    // Store initial mouse position for reference
+    const initialMouseX = e.clientX;
+    const timelineRect = timelineRulerRef.current?.getBoundingClientRect();
+    const timelineWidth = timelineRect?.width || 1;
+    
+    console.log(`Trim start - Scene: ${index + 1}, Duration: ${originalScene.duration}s, Timeline width: ${timelineWidth}px`);
+
+    // Mouse move handler for trimming
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+        // Prevent default browser behavior
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
+        
+        // Skip if timeline reference is missing or no scene is being trimmed
+        if (!timelineRulerRef.current || trimmingSceneIndex === null) return;
+
+        // Calculate mouse position relative to timeline
+        const rect = timelineRulerRef.current.getBoundingClientRect();
+        const moveX = moveEvent.clientX - rect.left;
+        const percentage = Math.max(0, Math.min(moveX / rect.width, 1));
+        const mouseTime = percentage * totalDuration;
+        
+        // Update scenes with new duration
+        setScenes(currentScenes => {
+            const sceneToTrim = currentScenes[trimmingSceneIndex];
+            if (!sceneToTrim) return currentScenes; // Safety check
+
+            let newDuration = sceneToTrim.duration;
+            const currentStartTime = getSceneStartTime(trimmingSceneIndex, currentScenes);
+            const currentEndTime = currentStartTime + sceneToTrim.duration;
+
+            if (handleType === 'left') {
+                // Left handle - adjusts start time, affecting duration
+                
+                // Ensure new start time doesn't exceed end time minus minimum duration
+                const maxValidStartTime = currentEndTime - MIN_SCENE_DURATION;
+                const newStartTime = Math.min(maxValidStartTime, mouseTime);
+
+                // Ensure new start time doesn't go before the previous scene ends
+                const prevSceneEndTime = trimmingSceneIndex > 0
+                    ? getSceneStartTime(trimmingSceneIndex - 1, currentScenes) + currentScenes[trimmingSceneIndex - 1].duration
+                    : 0;
+                const clampedStartTime = Math.max(prevSceneEndTime, newStartTime);
+
+                // Calculate new duration and update current time
+                newDuration = currentEndTime - clampedStartTime;
+                setCurrentTime(clampedStartTime); // Move playhead to the handle
+                
+                console.log(`Left trim - New start: ${clampedStartTime.toFixed(1)}s, New duration: ${newDuration.toFixed(1)}s`);
+
+            } else { // Right handle - directly adjusts end time/duration
+                // Ensure new end time is at least minimum duration after start time
+                const minValidEndTime = currentStartTime + MIN_SCENE_DURATION;
+                const newEndTime = Math.max(minValidEndTime, mouseTime);
+
+                // Calculate new duration and update current time
+                newDuration = newEndTime - currentStartTime;
+                setCurrentTime(newEndTime); // Move playhead to the handle
+                
+                console.log(`Right trim - New end: ${newEndTime.toFixed(1)}s, New duration: ${newDuration.toFixed(1)}s`);
+            }
+
+            // Final validation of duration
+            newDuration = Math.max(MIN_SCENE_DURATION, newDuration);
+
+            // Only update if the duration actually changed
+            if (Math.abs(newDuration - sceneToTrim.duration) > 0.01) {
+                const updatedScenes = [...currentScenes];
+                updatedScenes[trimmingSceneIndex] = { 
+                    ...sceneToTrim, 
+                    duration: newDuration 
+                };
+                
+                // Recalculate total duration with the updated scenes
+                recalculateTotalDuration(updatedScenes);
+                return updatedScenes;
+            }
+
+            return currentScenes; // No change needed
+        });
+    };
+
+    // Mouse up handler to end trimming
+    const handleMouseUp = (upEvent: MouseEvent) => {
+        // Prevent default browser behavior
+        upEvent.preventDefault();
+        upEvent.stopPropagation();
+        
+        // Determine if we were actually dragging
+        let wasDragging = false;
+        
+        if (handleType === 'left' && isDraggingLeftTrim) {
+            setIsDraggingLeftTrim(false);
+            wasDragging = true;
+            console.log("Left trim completed");
+        } else if (handleType === 'right' && isDraggingRightTrim) {
+            setIsDraggingRightTrim(false);
+            wasDragging = true;
+            console.log("Right trim completed");
+        }
+
+        // Clean up if we were dragging
+        if (wasDragging) {
+            // Clear trimming state
+            setTrimmingSceneIndex(null);
+            
+            // Remove event listeners
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            // Get the final scene after trimming
+            const finalScene = scenes[index];
+            
+            // Notify user of the update
+            toast.info(`Scene ${index + 1} duration updated to ${finalScene.duration.toFixed(1)}s`);
+            
+            // Ensure the timeline reflects the final state
+            recalculateTotalDuration(scenes);
+        }
+    };
+
+    // Add event listeners to the document to track mouse movement outside the handle
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
-
-  // Add event listeners to track mouse movement outside the handle using timelineRowRef's coordinate space
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
-};
-
 
   // --- Effects ---
 
