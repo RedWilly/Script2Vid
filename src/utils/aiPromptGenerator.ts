@@ -1,4 +1,5 @@
 // Client-side interface to the prompt generation functionality
+import { Scene } from '@/types/scene';
 
 export interface GeneratePromptParams {
   sceneText: string;
@@ -32,7 +33,7 @@ export async function generateAIPrompt({ sceneText, previousPrompt }: GeneratePr
 }
 
 // Function to generate all prompts for multiple scenes
-export async function generateAllAIPrompts(scenes: Array<{ text: string, prompt: string }>): Promise<Array<{ text: string, prompt: string }>> {
+export async function generateAllAIPrompts(scenes: Scene[]): Promise<Scene[]> {
   try {
     const response = await fetch('/api/generate-all-prompts', {
       method: 'POST',

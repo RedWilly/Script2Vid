@@ -4,14 +4,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { generateImagePrompt, generateAllImagePrompts } from "@/services/aiService";
+import { generateImage, generateAllImages } from '@/utils/imageGenerator';
+import { generateVideo as generateVideoFromScenes } from '@/utils/videoGenerator';
 import Link from "next/link";
 import { toast } from "sonner";
 import { IMAGE_STYLE_PREFIX } from "@/lib/constants";
-
-interface Scene {
-  text: string;
-  prompt: string;
-}
+import { Scene } from "@/types";
 
 export default function SceneVisualizer() {
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -19,6 +17,10 @@ export default function SceneVisualizer() {
   const [basePrompt, setBasePrompt] = useState(IMAGE_STYLE_PREFIX);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Get script from localStorage instead of URL parameters
@@ -77,8 +79,9 @@ export default function SceneVisualizer() {
     const sceneTexts = splitScript(script);
     
     // Initialize scenes with empty prompts
-    const initialScenes = sceneTexts.map(text => ({
-      text,
+    const initialScenes = sceneTexts.map((text, index) => ({
+      id: `scene-${index}`,
+      content: text,
       prompt: ""
     }));
     
@@ -86,8 +89,39 @@ export default function SceneVisualizer() {
   }, []);
 
   const generatePrompt = async (sceneIndex: number) => {
-    // This function now does nothing
-    console.log("Generate button clicked - no action taken");
+    // Check if the scene has a prompt
+    const scene = scenes[sceneIndex];
+    if (!scene.prompt) {
+      toast.error("No prompt available. Please prepare a prompt first.");
+      return;
+    }
+
+    try {
+      setIsGeneratingImage(true);
+      
+      // Generate the image using the prepared prompt
+      const updatedScene = await generateImage(
+        scene.id || `scene-${sceneIndex}`, 
+        scene.prompt,
+        scene.content
+      );
+      
+      // Update the scenes array with the new image information
+      const updatedScenes = [...scenes];
+      updatedScenes[sceneIndex] = {
+        ...updatedScenes[sceneIndex],
+        imageUrl: updatedScene.imageUrl,
+        seed: updatedScene.seed
+      };
+      
+      setScenes(updatedScenes);
+      toast.success("Image generated successfully!");
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.error("Failed to generate image. Please try again.");
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   const prepareScene = async (sceneIndex: number) => {
@@ -105,13 +139,13 @@ export default function SceneVisualizer() {
         
         try {
           aiGeneratedPrompt = await generateImagePrompt({
-            sceneText: scene.text,
+            sceneText: scene.content,
             previousPrompt
           });
         } catch (error) {
           // If AI generation fails, use the base prompt as fallback
           console.error("AI preparation failed, using fallback:", error);
-          aiGeneratedPrompt = `${basePrompt} ${scene.text} --16:9`;
+          aiGeneratedPrompt = `${basePrompt} ${scene.content} --16:9`;
           toast.error("AI preparation failed. Using default prompt.");
         }
         
@@ -133,15 +167,44 @@ export default function SceneVisualizer() {
     }
   };
 
-  const copyPromptToClipboard = (prompt: string) => {
+  const copyPromptToClipboard = (prompt?: string) => {
+    if (!prompt) {
+      toast.error("No prompt available to copy");
+      return;
+    }
     navigator.clipboard.writeText(prompt);
-    toast.success("Copied to clipboard!");
+    toast.success("Prompt copied to clipboard");
   };
 
 
   const generateAllPrompts = async () => {
-    // This function now does nothing
-    console.log("Generate All button clicked - no action taken");
+    // Check if there are scenes with prompts
+    const scenesWithPrompts = scenes.filter(scene => scene.prompt);
+    if (scenesWithPrompts.length === 0) {
+      toast.error("No prompts available. Please prepare prompts first.");
+      return;
+    }
+
+    try {
+      setIsGeneratingImage(true);
+      
+      // Add IDs to scenes if they don't have them
+      const scenesWithIds = scenes.map((scene, index) => ({
+        ...scene,
+        id: scene.id || `scene-${index}`
+      }));
+      
+      // Generate images for all scenes with prompts
+      const updatedScenes = await generateAllImages(scenesWithIds);
+      
+      setScenes(updatedScenes);
+      toast.success(`Generated ${scenesWithPrompts.length} images successfully!`);
+    } catch (error) {
+      console.error("Error generating all images:", error);
+      toast.error("Failed to generate images. Please try again.");
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   const prepareAllScenes = async () => {
@@ -157,6 +220,41 @@ export default function SceneVisualizer() {
       toast.error("Failed to prepare all scenes. Please try again.");
     } finally {
       setIsPreparing(false);
+    }
+  };
+
+  const handleVideoGeneration = async () => {
+    // Check if all scenes have images
+    const missingImages = scenes.filter(scene => !scene.imageUrl);
+    if (missingImages.length > 0) {
+      toast.error(`${missingImages.length} scenes are missing images. Generate images for all scenes first.`);
+      return;
+    }
+    
+    setIsGeneratingVideo(true);
+    
+    try {
+      // Generate a filename based on current date/time
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `scene-video-${timestamp}`;
+      
+      // Call the video generation function
+      const url = await generateVideoFromScenes(
+        scenes,
+        filename,
+        5 // Default duration per scene in seconds
+      );
+      
+      setVideoUrl(url);
+      toast.success("Video generated successfully!");
+      
+      // Open the video in a new tab
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error("Error generating video:", error);
+      toast.error("Failed to generate video. Please try again.");
+    } finally {
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -180,10 +278,10 @@ export default function SceneVisualizer() {
               <div className="hidden sm:block mr-2">
                 <Button 
                   onClick={generateAllPrompts}
-                  disabled={isGenerating}
+                  disabled={isGeneratingImage || scenes.length === 0}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
-                  {isGenerating ? (
+                  {isGeneratingImage ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -201,27 +299,29 @@ export default function SceneVisualizer() {
                   )}
                 </Button>
               </div>
-              {/* Prepare All button on desktop only */}
+              
+              {/* Generate Video button */}
               <div className="hidden sm:block mr-2">
                 <Button 
-                  onClick={prepareAllScenes}
-                  disabled={isPreparing}
-                  className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
+                  onClick={handleVideoGeneration}
+                  disabled={isGeneratingVideo || scenes.length === 0 || scenes.some(scene => !scene.imageUrl)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
-                  {isPreparing ? (
+                  {isGeneratingVideo ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span className="truncate">Preparing...</span>
+                      <span className="truncate">Creating Video...</span>
                     </>
                   ) : (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                        <path d="M14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
                       </svg>
-                      <span className="truncate">Prepare All</span>
+                      <span className="truncate">Create Video</span>
                     </>
                   )}
                 </Button>
@@ -249,7 +349,7 @@ export default function SceneVisualizer() {
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M7 3a1 1 0 011-1h2a1 1 0 110 2H9v7a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1 1 1 0 012 0v.34a4 4 0 001.576 2.812l-3.632 7.283A4 4 0 0011 16V9a1 1 0 012 0v7a1 1 0 01-2 0V9.34a4 4 0 00-1.576-2.812L7 5.5a1 1 0 00-1-1z" />
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                 </svg>
                 Scenes ({scenes.length})
               </h2>
@@ -258,10 +358,10 @@ export default function SceneVisualizer() {
               <div className="block sm:hidden">
                 <Button 
                   onClick={generateAllPrompts}
-                  disabled={isGenerating}
+                  disabled={isGeneratingImage || scenes.length === 0}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 text-xs"
                 >
-                  {isGenerating ? (
+                  {isGeneratingImage ? (
                     <>
                       <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -279,31 +379,6 @@ export default function SceneVisualizer() {
                   )}
                 </Button>
               </div>
-            </div>
-            
-            {/* Mobile scene navigation */}
-            <div className="flex lg:hidden justify-between items-center mb-3 bg-gray-800/30 rounded-lg p-2">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedSceneIndex(Math.max(0, selectedSceneIndex - 1))}
-                disabled={selectedSceneIndex === 0}
-                className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white disabled:opacity-50 disabled:cursor-not-allowed h-9 w-9 p-0 flex items-center justify-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </Button>
-              <span className="text-gray-300 font-medium">Scene {selectedSceneIndex + 1} of {scenes.length}</span>
-              <Button
-                variant="outline"
-                onClick={() => setSelectedSceneIndex(Math.min(scenes.length - 1, selectedSceneIndex + 1))}
-                disabled={selectedSceneIndex === scenes.length - 1}
-                className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white disabled:opacity-50 disabled:cursor-not-allowed h-9 w-9 p-0 flex items-center justify-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-              </Button>
             </div>
             
             {/* Scene list - hidden on small screens */}
@@ -334,7 +409,7 @@ export default function SceneVisualizer() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm line-clamp-2 text-gray-400">{scene.text}</p>
+                  <p className="text-sm line-clamp-2 text-gray-400">{scene.content}</p>
                 </div>
               ))}
             </div>
@@ -359,9 +434,34 @@ export default function SceneVisualizer() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm line-clamp-3 text-gray-400">{scenes[selectedSceneIndex].text}</p>
+                  <p className="text-sm line-clamp-3 text-gray-400">{scenes[selectedSceneIndex].content}</p>
                 </div>
               )}
+            </div>
+            
+            {/* Mobile scene navigation */}
+            <div className="flex lg:hidden justify-between items-center mb-3 bg-gray-800/30 rounded-lg p-2">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedSceneIndex(Math.max(0, selectedSceneIndex - 1))}
+                disabled={selectedSceneIndex === 0}
+                className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white disabled:opacity-50 disabled:cursor-not-allowed h-9 w-9 p-0 flex items-center justify-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </Button>
+              <span className="text-gray-300 font-medium">Scene {selectedSceneIndex + 1} of {scenes.length}</span>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedSceneIndex(Math.min(scenes.length - 1, selectedSceneIndex + 1))}
+                disabled={selectedSceneIndex === scenes.length - 1}
+                className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white disabled:opacity-50 disabled:cursor-not-allowed h-9 w-9 p-0 flex items-center justify-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </Button>
             </div>
           </div>
 
@@ -375,7 +475,7 @@ export default function SceneVisualizer() {
                     </svg>
                     Scene {selectedSceneIndex + 1}
                   </h2>
-                  <p className="text-gray-300 whitespace-pre-wrap bg-gray-800/50 p-3 sm:p-4 rounded-lg border border-gray-700/30">{scenes[selectedSceneIndex].text}</p>
+                  <p className="text-gray-300 whitespace-pre-wrap bg-gray-800/50 p-3 sm:p-4 rounded-lg border border-gray-700/30">{scenes[selectedSceneIndex].content}</p>
                 </div>
 
                 <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-4 sm:p-6 shadow-xl">
@@ -389,10 +489,10 @@ export default function SceneVisualizer() {
                     <div className="flex space-x-2">
                       <Button 
                         onClick={() => generatePrompt(selectedSceneIndex)}
-                        disabled={isGenerating}
+                        disabled={isGeneratingImage}
                         className="bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 flex-1 sm:flex-auto justify-center"
                       >
-                        {isGenerating ? (
+                        {isGeneratingImage ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -463,7 +563,26 @@ export default function SceneVisualizer() {
                   )}
                 </div>
 
-                <div className="flex justify-between hidden lg:flex">
+                {/* Display the generated image if available */}
+                {scenes[selectedSceneIndex]?.imageUrl && (
+                  <div className="mt-4 border border-gray-700 rounded-lg overflow-hidden">
+                    <div className="relative pb-[56.25%]"> {/* 16:9 aspect ratio */}
+                      <img 
+                        src={scenes[selectedSceneIndex].imageUrl} 
+                        alt={`Generated image for scene ${selectedSceneIndex + 1}`}
+                        className="absolute inset-0 w-full h-full object-contain bg-gray-950"
+                      />
+                    </div>
+                    <div className="bg-gray-800 px-3 py-2 text-xs text-gray-300 flex justify-between items-center">
+                      <span>Generated Image</span>
+                      {scenes[selectedSceneIndex].seed && (
+                        <span>Seed: {scenes[selectedSceneIndex].seed}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-between hidden lg:flex mt-4">
                   <Button
                     variant="outline"
                     onClick={() => setSelectedSceneIndex(Math.max(0, selectedSceneIndex - 1))}

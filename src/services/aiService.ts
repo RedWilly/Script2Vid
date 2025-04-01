@@ -1,4 +1,5 @@
 import { generateAIPrompt, generateAllAIPrompts, GeneratePromptParams } from "../utils/aiPromptGenerator";
+import { Scene } from "@/types/scene";
 
 export async function generateImagePrompt(params: GeneratePromptParams): Promise<string> {
   try {
@@ -9,7 +10,7 @@ export async function generateImagePrompt(params: GeneratePromptParams): Promise
   }
 }
 
-export async function generateAllImagePrompts(scenes: Array<{ text: string, prompt: string }>): Promise<Array<{ text: string, prompt: string }>> {
+export async function generateAllImagePrompts(scenes: Scene[]): Promise<Scene[]> {
   try {
     return await generateAllAIPrompts(scenes);
   } catch (error) {
