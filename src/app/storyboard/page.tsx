@@ -875,8 +875,7 @@ const handleDeleteScene = (indexToDelete: number) => {
                          data-handle="left"
                          data-scene-index={index}
                        >
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150"></div>
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150 rotate-90"></div>
+                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-12 transition-all duration-150"></div>
                        </div>
 
                        {/* Right Handle */}
@@ -890,8 +889,7 @@ const handleDeleteScene = (indexToDelete: number) => {
                          data-handle="right"
                          data-scene-index={index}
                        >
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150"></div>
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-10 transition-all duration-150 rotate-90"></div>
+                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-12 transition-all duration-150"></div>
                        </div>
 
                        {/* Duration Display on Selected */}
