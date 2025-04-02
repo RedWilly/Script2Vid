@@ -102,14 +102,14 @@ export const TimelineRuler = () => {
           );
         })}
         
-        {/* Add a marker at the end of the timeline */}
+        {/* Add a marker at the end of the timeline
         {totalDuration > 0 && (
           <div className="absolute top-0 bottom-0 border-l border-purple-500" style={{ left: '100%' }}>
             <span className="absolute -top-4 left-1 text-[10px] text-purple-400 transform -translate-x-1/2 whitespace-nowrap">
               {`${totalDuration.toFixed(1)}s`}
             </span>
           </div>
-        )}
+        )} */}
       </div>
       
       {/* Playhead */}
@@ -141,10 +141,10 @@ export const TimelineRuler = () => {
                 width: `${widthPercentage}%`
               }}
             >
-              {/* Scene number indicator at the top */}
+              {/* Scene number indicator at the top
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-gray-400">
                 {index + 1}
-              </div>
+              </div> */}
             </div>
           );
         })}
