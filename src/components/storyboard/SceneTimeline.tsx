@@ -14,7 +14,7 @@ export const SceneTimeline = () => {
   return (
     <div 
       ref={timelineRowRef} 
-      className="flex-grow overflow-x-auto whitespace-nowrap h-20 py-2 space-x-2 scrollbar-thin scrollbar-thumb-[#1a1f2c] scrollbar-track-[#1a1f2c]/50"
+      className="flex items-center flex-grow overflow-x-auto whitespace-nowrap h-20 py-2 space-x-2 scrollbar-thin scrollbar-thumb-[#1a1f2c] scrollbar-track-[#1a1f2c]/50"
     >
       {scenes.map((scene, index) => (
         <SceneThumbnail 

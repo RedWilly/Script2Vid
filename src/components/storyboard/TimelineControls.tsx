@@ -38,10 +38,10 @@ export const TimelineControls = () => {
         {currentTimeDisplay} / {formatDuration(totalDuration)}
       </div>
 
-      {/* Additional Time Display (for larger screens) */}
+      {/* Additional Time Display (for larger screens)
       <div className="flex-shrink-0 text-sm text-gray-400 font-mono ml-auto hidden md:block">
         {formatDisplayTime(currentTime)} / {formatDisplayTime(totalDuration)}
-      </div>
+      </div> */}
     </div>
   );
 };
