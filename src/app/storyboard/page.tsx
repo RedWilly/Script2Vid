@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Scene } from "@/types";
+import Sidebar from "@/components/Sidebar";
 
 // Define interface for scene with duration and ID
 interface SceneWithDuration extends Scene {
@@ -28,6 +29,8 @@ export default function StoryBoard() {
   const [isDraggingRightTrim, setIsDraggingRightTrim] = useState(false);
   const [trimmingSceneIndex, setTrimmingSceneIndex] = useState<number | null>(null);
   const [activeTrimDuration, setActiveTrimDuration] = useState<number | null>(null);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const timelineRulerRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
@@ -675,273 +678,332 @@ const handleDeleteScene = (indexToDelete: number) => {
     }, 50);
 };
 
+  // Handle video export
+  const handleExportVideo = async () => {
+    if (scenes.length === 0) {
+      toast.error("No scenes to export");
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      // Create a toast ID to reference the loading toast later
+      const toastId = toast.loading("Generating video...");
+
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ scenes }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate video');
+      }
+
+      // Create a blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'storyboard_video.mp4';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      // Dismiss the loading toast and show the success toast
+      toast.dismiss(toastId);
+      toast.success("Video exported successfully!");
+    } catch (error) {
+      console.error('Error exporting video:', error);
+      // Dismiss any existing toasts before showing the error
+      toast.dismiss();
+      toast.error(error instanceof Error ? error.message : 'Failed to export video');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // ---- UI Rendering ----
   const currentSceneForPreview = selectedSceneIndex !== null && selectedSceneIndex >= 0 && selectedSceneIndex < scenes.length
       ? scenes[selectedSceneIndex]
       : null;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-white flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-2 text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
-            <span className="text-blue-400">Script</span><span className="text-white">Viz</span><span className="text-purple-400 ml-2">StoryBoard</span>
-          </h1>
-          <div className="ml-4 flex items-center gap-2">
-            <Button 
-              onClick={() => window.location.href = '/scene-visualizer'}
-              variant="outline" 
-              size="sm"
-              className="text-xs flex items-center gap-1"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" /></svg>
-              <span>Back to Scene Visualizer</span>
-            </Button>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={() => toast.info("Export feature coming soon!")} className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" /></svg>
-              <span className="truncate">Export</span>
-          </Button>
-          <Link href="/scene-visualizer">
-            <Button variant="outline" className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-sm sm:text-base">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" /></svg>
-              <span className="truncate">Back</span>
-            </Button>
-          </Link>
-        </div>
-      </header>
-      {/* Main content area */}
-      <main className="flex-grow flex flex-col p-4 sm:p-6 gap-4 sm:gap-6">
-        {/* Preview Area */}
-        <div className="flex-grow bg-black border border-gray-800 rounded-xl overflow-hidden shadow-xl relative flex items-center justify-center min-h-[300px] md:min-h-[400px]">
-            {currentSceneForPreview ? (
-            <img
-                key={currentSceneForPreview.id} // Force re-render on scene change
-                src={currentSceneForPreview.imageUrl}
-                alt={`Scene ${selectedSceneIndex !== null ? selectedSceneIndex + 1 : ''}`}
-                className="max-w-full max-h-full object-contain"
-            />
-            ) : (
-            <div className="text-gray-500 text-center p-4">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-2 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" /></svg>
-                <p className="text-lg">{scenes.length > 0 ? "Select a scene" : "No scenes loaded"}</p>
-                <p className="text-sm">Use the timeline below</p>
+    <div className="min-h-screen bg-[#0a0d14] text-white flex flex-col">
+      {/* Sidebar */}
+      <Sidebar 
+        isExpanded={isSidebarExpanded} 
+        onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} 
+      />
+      
+      {/* Main content with padding to account for sidebar */}
+      <div className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-56' : 'ml-14'}`}>
+        <div className="max-w-full">
+          {/* Header */}
+          <header className="bg-[#0a0d14] border-b border-[#1a1f2c]/50 p-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-white flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
+                <span className="text-blue-400">Script</span><span className="text-white">Viz</span> <span className="text-purple-400">StoryBoard</span>
+              </h1>
             </div>
-            )}
-            {currentSceneForPreview && selectedSceneIndex !== null && (
-                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white pointer-events-none">
-                    <span className="font-semibold drop-shadow-md">Scene {selectedSceneIndex + 1}</span>
-                 </div>
-             )}
-        </div>
+            <div className="flex items-center space-x-2">
+              <Button 
+                onClick={handleExportVideo} 
+                disabled={isExporting || scenes.length === 0}
+                className={`bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-1.5 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm ${isExporting ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                  {isExporting ? (
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2a1 1 0 000-1.664l-3-2z"></path></svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  )}
+                  <span className="truncate">{isExporting ? 'Exporting...' : 'Export Video'}</span>
+              </Button>
+              <Link href="/scene-visualizer">
+                <Button variant="outline" className="bg-transparent hover:bg-[#1a1f2c] text-gray-300 border border-[#1a1f2c] rounded-md transition-all hover:text-white flex items-center gap-1 sm:gap-2 px-3 py-1.5 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" /></svg>
+                  <span className="truncate">Back</span>
+                </Button>
+              </Link>
+            </div>
+          </header>
+          {/* Main content area */}
+          <main className="flex-grow flex flex-col p-4 sm:p-6 gap-4 sm:gap-6">
+            {/* Preview Area */}
+            <div className="flex-grow bg-black border border-[#1a1f2c]/50 rounded-xl overflow-hidden shadow-xl relative flex items-center justify-center min-h-[300px] md:min-h-[400px]">
+                {currentSceneForPreview ? (
+                <img
+                    key={currentSceneForPreview.id} // Force re-render on scene change
+                    src={currentSceneForPreview.imageUrl}
+                    alt={`Scene ${selectedSceneIndex !== null ? selectedSceneIndex + 1 : ''}`}
+                    className="max-w-full max-h-full object-contain"
+                />
+                ) : (
+                <div className="text-gray-500 text-center p-4">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-2 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" /></svg>
+                    <p className="text-lg">{scenes.length > 0 ? "Select a scene" : "No scenes loaded"}</p>
+                    <p className="text-sm">Use the timeline below</p>
+                </div>
+                )}
+                {currentSceneForPreview && selectedSceneIndex !== null && (
+                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white pointer-events-none">
+                        <span className="font-semibold drop-shadow-md">Scene {selectedSceneIndex + 1}</span>
+                     </div>
+                 )}
+            </div>
 
-        {/* Timeline Section */}
-        <div className="flex-shrink-0 bg-black border border-gray-800 rounded-xl p-3 sm:p-4 shadow-xl">
-          {/* Ruler and Playhead */}
-           <div
-            ref={timelineRulerRef}
-            className="h-8 bg-gray-800 rounded-t-md relative cursor-pointer mb-2"
-            onClick={handleTimelineRulerClick}
-            >
-             {/* Time markers */}
-             <div className="absolute inset-0 flex items-center pointer-events-none">
-                   {/* Create time markers based on total duration */}
-                   {[...Array(Math.max(1, Math.ceil(totalDuration / 5)) + 1)].map((_, i) => {
-                       const timePoint = i * 5; // Show markers every 5 seconds
-                       if (totalDuration > 0 && timePoint > totalDuration + 1) return null; // Hide markers too far past end
+            {/* Timeline Section */}
+            <div className="flex-shrink-0 bg-black border border-[#1a1f2c]/50 rounded-xl p-3 sm:p-4 shadow-xl">
+              {/* Ruler and Playhead */}
+               <div
+                ref={timelineRulerRef}
+                className="h-8 bg-[#1a1f2c] rounded-t-md relative cursor-pointer mb-2"
+                onClick={handleTimelineRulerClick}
+                >
+                 {/* Time markers */}
+                 <div className="absolute inset-0 flex items-center pointer-events-none">
+                       {/* Create time markers based on total duration */}
+                       {[...Array(Math.max(1, Math.ceil(totalDuration / 5)) + 1)].map((_, i) => {
+                           const timePoint = i * 5; // Show markers every 5 seconds
+                           if (totalDuration > 0 && timePoint > totalDuration + 1) return null; // Hide markers too far past end
+                           
+                           // Calculate percentage position
+                           const percentage = totalDuration > 0 ? Math.min(100, (timePoint / totalDuration) * 100) : (i * 10);
+
+                           return (
+                             <div key={i} className="absolute top-0 bottom-0 border-l border-[#1a1f2c] border-opacity-50" style={{ left: `${percentage}%` }}>
+                               <span className="absolute -top-4 left-1 text-[10px] text-gray-400 transform -translate-x-1/2 whitespace-nowrap">
+                                  {`${timePoint}s`}
+                                </span>
+                             </div>
+                           );
+                       })}
                        
-                       // Calculate percentage position
-                       const percentage = totalDuration > 0 ? Math.min(100, (timePoint / totalDuration) * 100) : (i * 10);
-
-                       return (
-                         <div key={i} className="absolute top-0 bottom-0 border-l border-gray-600" style={{ left: `${percentage}%` }}>
-                           <span className="absolute -top-4 left-1 text-[10px] text-gray-400 transform -translate-x-1/2 whitespace-nowrap">
-                              {`${timePoint}s`}
+                       {/* Add a marker at the end of the timeline */}
+                       {totalDuration > 0 && (
+                         <div className="absolute top-0 bottom-0 border-l border-purple-500" style={{ left: '100%' }}>
+                           <span className="absolute -top-4 left-1 text-[10px] text-purple-400 transform -translate-x-1/2 whitespace-nowrap">
+                              {`${totalDuration.toFixed(1)}s`}
                             </span>
                          </div>
-                       );
-                   })}
-                   
-                   {/* Add a marker at the end of the timeline */}
-                   {totalDuration > 0 && (
-                     <div className="absolute top-0 bottom-0 border-l border-purple-500" style={{ left: '100%' }}>
-                       <span className="absolute -top-4 left-1 text-[10px] text-purple-400 transform -translate-x-1/2 whitespace-nowrap">
-                          {`${totalDuration.toFixed(1)}s`}
-                        </span>
-                     </div>
-                   )}
-               </div>
-              
-              {/* Playhead */}
-              <div 
-                ref={playheadRef} 
-                className="absolute top-0 bottom-0 w-0.5 bg-purple-500 cursor-ew-resize z-30 group" 
-                style={{ left: '0%' }} 
-                onMouseDown={handlePlayheadMouseDown} 
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="absolute -top-[4px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-500 transform transition-transform group-hover:scale-110"></div>
-              </div>
-              
-              {/* Scene duration indicators */}
-              <div className="absolute inset-0 pointer-events-none">
-                {scenes.map((scene, index) => {
-                  // Calculate start and end percentages
-                  const startTime = getSceneStartTime(index, scenes);
-                  const endTime = startTime + scene.duration;
-                  const startPercentage = (startTime / totalDuration) * 100;
-                  const widthPercentage = (scene.duration / totalDuration) * 100;
+                       )}
+                   </div>
                   
-                  return (
-                    <div 
-                      key={`duration-${scene.id}`}
-                      className={`absolute top-0 bottom-0 ${selectedSceneIndex === index ? 'bg-purple-500/20' : 'bg-gray-600/20'} border-r border-gray-600`}
-                      style={{ 
-                        left: `${startPercentage}%`, 
-                        width: `${widthPercentage}%`
-                      }}
+                  {/* Playhead */}
+                  <div 
+                    ref={playheadRef} 
+                    className="absolute top-0 bottom-0 w-0.5 bg-purple-500 cursor-ew-resize z-30 group" 
+                    style={{ left: '0%' }} 
+                    onMouseDown={handlePlayheadMouseDown} 
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="absolute -top-[4px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-500 transform transition-transform group-hover:scale-110"></div>
+                  </div>
+                  
+                  {/* Scene duration indicators */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {scenes.map((scene, index) => {
+                      // Calculate start and end percentages
+                      const startTime = getSceneStartTime(index, scenes);
+                      const endTime = startTime + scene.duration;
+                      const startPercentage = (startTime / totalDuration) * 100;
+                      const widthPercentage = (scene.duration / totalDuration) * 100;
+                      
+                      return (
+                        <div 
+                          key={`duration-${scene.id}`}
+                          className={`absolute top-0 bottom-0 ${selectedSceneIndex === index ? 'bg-purple-500/20' : 'bg-[#1a1f2c]/20'} border-r border-[#1a1f2c] border-opacity-50`}
+                          style={{ 
+                            left: `${startPercentage}%`, 
+                            width: `${widthPercentage}%`
+                          }}
+                        >
+                          {/* Scene number indicator at the top */}
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-gray-400">
+                            {index + 1}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              {/* Controls + Thumbnails Row */}
+              <div className="flex items-center gap-3">
+                 {/* Play Button */}
+                 <Button onClick={handlePlayPause} variant="ghost" className="bg-[#1a1f2c] hover:bg-[#1a1f2c]/80 text-white rounded-md h-16 w-12 flex items-center justify-center flex-shrink-0 p-0" disabled={totalDuration <= 0} >
+                     {isPlaying ? <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                 : <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>}
+                 </Button>
+                 
+                 {/* Time Display */}
+                 <div className="text-xs text-gray-300 font-mono bg-[#1a1f2c] px-2 py-1 rounded flex-shrink-0">
+                    {currentTimeDisplay} / {formatDuration(totalDuration)}
+                 </div>
+
+                {/* Scrollable Thumbnails */}
+                <div ref={timelineRowRef} className="flex-grow overflow-x-auto whitespace-nowrap h-20 py-2 space-x-2 scrollbar-thin scrollbar-thumb-[#1a1f2c] scrollbar-track-[#1a1f2c]/50" >
+                  {scenes.map((scene, index) => (
+                    <div
+                      key={scene.id}
+                      className={`relative inline-block w-28 h-16 rounded border-2 align-top cursor-pointer transition-all duration-150 group flex-shrink-0 focus:outline-none ${
+                        selectedSceneIndex === index
+                          ? 'border-purple-500 shadow-lg shadow-purple-500/30'
+                          : 'border-[#1a1f2c] hover:border-[#1a1f2c]/80'
+                      }`}
+                      onClick={(e) => handleSceneClick(e, index)}
+                      tabIndex={0}
+                      onFocus={() => handleSceneSelect(index, true)}
+                      data-scene-index={index}
+                      role="button"
+                      aria-pressed={selectedSceneIndex === index}
+                      aria-label={`Scene ${index + 1}`}
                     >
-                      {/* Scene number indicator at the top */}
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-gray-400">
+                      {/* Thumbnail Image */}
+                      <img 
+                        src={scene.imageUrl} 
+                        alt={`Thumbnail ${index + 1}`} 
+                        className="w-full h-full object-cover rounded-[1px]" 
+                        loading="lazy"
+                        draggable={false} // Prevent accidental dragging
+                        onClick={(e) => e.stopPropagation()} // Prevent double-firing
+                      />
+
+                      {/* Scene Number */}
+                      <div className="absolute bottom-0 left-0 bg-black bg-opacity-60 text-white text-[10px] px-1 py-0.5 rounded-tr-md pointer-events-none">
                         {index + 1}
                       </div>
+
+                       {/* --- Trim Handles (Conditional) --- */}
+                       {selectedSceneIndex === index && (
+                         <>
+                           {/* Left Handle */}
+                           <div
+                             className="absolute top-0 left-0 bottom-0 w-5 bg-gradient-to-r from-purple-600/90 to-purple-600/50 hover:from-purple-500 hover:to-purple-500/70 cursor-ew-resize z-20 rounded-l-sm flex items-center justify-center transition-all duration-150 group/handle"
+                             onMouseDown={(e) => {
+                               e.stopPropagation();
+                               handleTrimMouseDown(e, index, 'left');
+                             }}
+                             title={`Trim start (Current: ${formatDuration(scene.duration)})`}
+                             data-handle="left"
+                             data-scene-index={index}
+                           >
+                               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-12 transition-all duration-150"></div>
+                           </div>
+
+                           {/* Right Handle */}
+                           <div
+                             className="absolute top-0 right-0 bottom-0 w-5 bg-gradient-to-l from-purple-600/90 to-purple-600/50 hover:from-purple-500 hover:to-purple-500/70 cursor-ew-resize z-20 rounded-r-sm flex items-center justify-center transition-all duration-150 group/handle"
+                             onMouseDown={(e) => {
+                               e.stopPropagation();
+                               handleTrimMouseDown(e, index, 'right');
+                             }}
+                             title={`Trim end (Current: ${formatDuration(scene.duration)})`}
+                             data-handle="right"
+                             data-scene-index={index}
+                           >
+                               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-12 transition-all duration-150"></div>
+                           </div>
+
+                           {/* Duration Display on Selected */}
+                            <div className="absolute top-0 right-0 left-0 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 text-center pointer-events-none">
+                                {formatDuration(scene.duration)}
+                            </div>
+                            {/* Active Trim Duration Display */}
+                            {activeTrimDuration !== null && (
+                              <div className="absolute top-0 right-0 left-0 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 text-center pointer-events-none">
+                                {formatDuration(activeTrimDuration)}
+                              </div>
+                            )}
+                         </>
+                       )}
+
+                       {/* Delete Button (Show on hover/focus) */}
+                       <Button 
+                          variant="destructive" 
+                          size="icon" 
+                          className={`absolute top-1 ${selectedSceneIndex === index ? 'left-3' : 'left-1'} h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-150 z-20 bg-red-600/80 hover:bg-red-500`}
+                          onClick={(e) => { 
+                            e.preventDefault();
+                            e.stopPropagation(); 
+                            handleDeleteScene(index); 
+                          }}
+                          aria-label={`Delete scene ${index + 1}`}
+                          data-scene-index={index}
+                       >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                       </Button>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          {/* Controls + Thumbnails Row */}
-          <div className="flex items-center gap-3">
-             {/* Play Button */}
-             <Button onClick={handlePlayPause} variant="ghost" className="bg-gray-700 hover:bg-gray-600 text-white rounded-md h-16 w-12 flex items-center justify-center flex-shrink-0 p-0" disabled={totalDuration <= 0} >
-                 {isPlaying ? <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                             : <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>}
-             </Button>
-             
-             {/* Time Display */}
-             <div className="text-xs text-gray-300 font-mono bg-gray-800 px-2 py-1 rounded flex-shrink-0">
-                {currentTimeDisplay} / {formatDuration(totalDuration)}
-             </div>
-
-            {/* Scrollable Thumbnails */}
-            <div ref={timelineRowRef} className="flex-grow overflow-x-auto whitespace-nowrap h-20 py-2 space-x-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800" >
-              {scenes.map((scene, index) => (
-                <div
-                  key={scene.id}
-                  className={`relative inline-block w-28 h-16 rounded border-2 align-top cursor-pointer transition-all duration-150 group flex-shrink-0 focus:outline-none ${
-                    selectedSceneIndex === index
-                      ? 'border-purple-500 shadow-lg shadow-purple-500/30'
-                      : 'border-gray-700 hover:border-gray-500'
-                  }`}
-                  onClick={(e) => handleSceneClick(e, index)}
-                  tabIndex={0}
-                  onFocus={() => handleSceneSelect(index, true)}
-                  data-scene-index={index}
-                  role="button"
-                  aria-pressed={selectedSceneIndex === index}
-                  aria-label={`Scene ${index + 1}`}
-                >
-                  {/* Thumbnail Image */}
-                  <img 
-                    src={scene.imageUrl} 
-                    alt={`Thumbnail ${index + 1}`} 
-                    className="w-full h-full object-cover rounded-[1px]" 
-                    loading="lazy"
-                    draggable={false} // Prevent accidental dragging
-                    onClick={(e) => e.stopPropagation()} // Prevent double-firing
-                  />
-
-                  {/* Scene Number */}
-                  <div className="absolute bottom-0 left-0 bg-black bg-opacity-60 text-white text-[10px] px-1 py-0.5 rounded-tr-md pointer-events-none">
-                    {index + 1}
+                  ))}
+                  {/* Add Scene Button */}
+                  <div 
+                    className="relative inline-block w-28 h-16 rounded border-2 border-dashed border-[#1a1f2c] align-top cursor-pointer transition-all hover:border-purple-500 hover:bg-[#1a1f2c]/50 flex items-center justify-center flex-shrink-0 group" 
+                    onClick={handleAddScene} 
+                    title="Add Scene"
+                  >
+                    <span className="text-3xl font-light text-gray-500 group-hover:text-purple-400 transition-colors">+</span>
+                    <span className="absolute bottom-1 text-xs text-gray-400 group-hover:text-gray-300">Add Scene</span>
                   </div>
-
-                   {/* --- Trim Handles (Conditional) --- */}
-                   {selectedSceneIndex === index && (
-                     <>
-                       {/* Left Handle */}
-                       <div
-                         className="absolute top-0 left-0 bottom-0 w-5 bg-gradient-to-r from-purple-600/90 to-purple-600/50 hover:from-purple-500 hover:to-purple-500/70 cursor-ew-resize z-20 rounded-l-sm flex items-center justify-center transition-all duration-150 group/handle"
-                         onMouseDown={(e) => {
-                           e.stopPropagation();
-                           handleTrimMouseDown(e, index, 'left');
-                         }}
-                         title={`Trim start (Current: ${formatDuration(scene.duration)})`}
-                         data-handle="left"
-                         data-scene-index={index}
-                       >
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-12 transition-all duration-150"></div>
-                       </div>
-
-                       {/* Right Handle */}
-                       <div
-                         className="absolute top-0 right-0 bottom-0 w-5 bg-gradient-to-l from-purple-600/90 to-purple-600/50 hover:from-purple-500 hover:to-purple-500/70 cursor-ew-resize z-20 rounded-r-sm flex items-center justify-center transition-all duration-150 group/handle"
-                         onMouseDown={(e) => {
-                           e.stopPropagation();
-                           handleTrimMouseDown(e, index, 'right');
-                         }}
-                         title={`Trim end (Current: ${formatDuration(scene.duration)})`}
-                         data-handle="right"
-                         data-scene-index={index}
-                       >
-                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-[2px] bg-white/80 group-hover/handle:bg-white group-hover/handle:h-12 transition-all duration-150"></div>
-                       </div>
-
-                       {/* Duration Display on Selected */}
-                        <div className="absolute top-0 right-0 left-0 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 text-center pointer-events-none">
-                            {formatDuration(scene.duration)}
-                        </div>
-                        {/* Active Trim Duration Display */}
-                        {activeTrimDuration !== null && (
-                          <div className="absolute top-0 right-0 left-0 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 text-center pointer-events-none">
-                            {formatDuration(activeTrimDuration)}
-                          </div>
-                        )}
-                     </>
-                   )}
-
-                   {/* Delete Button (Show on hover/focus) */}
-                   <Button 
-                      variant="destructive" 
-                      size="icon" 
-                      className={`absolute top-1 ${selectedSceneIndex === index ? 'left-3' : 'left-1'} h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-150 z-20 bg-red-600/80 hover:bg-red-500`}
-                      onClick={(e) => { 
-                        e.preventDefault();
-                        e.stopPropagation(); 
-                        handleDeleteScene(index); 
-                      }}
-                      aria-label={`Delete scene ${index + 1}`}
-                      data-scene-index={index}
-                   >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                   </Button>
                 </div>
-              ))}
-              {/* Add Scene Button */}
-              <div 
-                className="relative inline-block w-28 h-16 rounded border-2 border-dashed border-gray-500 align-top cursor-pointer transition-all hover:border-purple-500 hover:bg-gray-800/50 flex items-center justify-center flex-shrink-0 group" 
-                onClick={handleAddScene} 
-                title="Add Scene"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500 group-hover:text-purple-400 transition-colors" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 01-1 1h-5a1 1 0 110-2h5V8a1 1 0 011-1V4a1 1 0 110-2z" clipRule="evenodd" />
-                </svg>
-                <span className="absolute bottom-1 text-xs text-gray-400 group-hover:text-gray-300">Add Scene</span>
+
+                 {/* Time Display */}
+                 <div className="flex-shrink-0 text-sm text-gray-400 font-mono ml-3 hidden md:block">
+                     {formatDisplayTime(currentTime)} / {formatDisplayTime(totalDuration)}
+                 </div>
               </div>
             </div>
-
-             {/* Time Display */}
-             <div className="flex-shrink-0 text-sm text-gray-400 font-mono ml-3 hidden md:block">
-                 {formatDisplayTime(currentTime)} / {formatDisplayTime(totalDuration)}
-             </div>
-          </div>
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
