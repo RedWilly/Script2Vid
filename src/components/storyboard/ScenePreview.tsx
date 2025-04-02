@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStoryboard } from './StoryboardContext';
 
 export const ScenePreview = () => {
   const { scenes, selectedSceneIndex } = useStoryboard();
   const [isLoading, setIsLoading] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const imageCache = useRef<Map<string, boolean>>(new Map());
   
   // Get the current scene for preview
   const currentSceneForPreview = selectedSceneIndex !== null && 
@@ -15,53 +16,52 @@ export const ScenePreview = () => {
       ? scenes[selectedSceneIndex]
       : null;
 
-  // Preload images and handle transitions
+  // Handle image display with preloaded images
   useEffect(() => {
     if (!currentSceneForPreview || !currentSceneForPreview.imageUrl) {
       setCurrentImage(null);
       return;
     }
 
-    // Only set loading if we're changing to a different image
-    if (currentImage !== currentSceneForPreview.imageUrl) {
-      setIsLoading(true);
-      
-      // Preload the new image
-      const img = new Image();
-      img.src = currentSceneForPreview.imageUrl;
-      
-      img.onload = () => {
-        setCurrentImage(currentSceneForPreview.imageUrl as string);
-        setIsLoading(false);
-      };
-      
-      img.onerror = () => {
-        console.error('Failed to load image:', currentSceneForPreview.imageUrl);
-        setIsLoading(false);
-        // Still set the image URL so we can show a fallback
-        setCurrentImage(currentSceneForPreview.imageUrl as string);
-      };
-    }
-  }, [currentSceneForPreview, currentImage]);
-
-  // Preload adjacent images for smoother navigation
-  useEffect(() => {
-    if (selectedSceneIndex === null) return;
+    const imageUrl = currentSceneForPreview.imageUrl;
     
-    // Preload next and previous images
-    const preloadIndices = [
-      selectedSceneIndex + 1, 
-      selectedSceneIndex - 1
-    ].filter(idx => idx >= 0 && idx < scenes.length);
-    
-    preloadIndices.forEach(idx => {
-      const imageUrl = scenes[idx]?.imageUrl;
-      if (imageUrl) {
+    // Check if this image is already in our cache
+    if (imageCache.current.has(imageUrl)) {
+      // Image is already loaded, just set it without loading state
+      setCurrentImage(imageUrl);
+      setIsLoading(false);
+    } else {
+      // Only set loading if we're changing to a different image
+      if (currentImage !== imageUrl) {
+        setIsLoading(true);
+        
+        // Check if the image is already in browser cache
         const img = new Image();
         img.src = imageUrl;
+        
+        if (img.complete) {
+          // Image was already cached by the browser
+          setCurrentImage(imageUrl);
+          setIsLoading(false);
+          imageCache.current.set(imageUrl, true);
+        } else {
+          // Need to wait for the image to load
+          img.onload = () => {
+            setCurrentImage(imageUrl);
+            setIsLoading(false);
+            imageCache.current.set(imageUrl, true);
+          };
+          
+          img.onerror = () => {
+            console.error('Failed to load image:', imageUrl);
+            setIsLoading(false);
+            // Still set the image URL so we can show a fallback
+            setCurrentImage(imageUrl);
+          };
+        }
       }
-    });
-  }, [selectedSceneIndex, scenes]);
+    }
+  }, [currentSceneForPreview, currentImage]);
 
   return (
     <div className="flex-grow bg-black border border-[#1a1f2c]/50 rounded-xl overflow-hidden shadow-xl relative flex items-center justify-center min-h-[300px] md:min-h-[400px]">

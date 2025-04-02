@@ -426,6 +426,9 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
 
         console.log("StoryBoard: Final loaded scenes", loadedScenes);
         toast.success(`Loaded ${loadedScenes.length} scenes.`);
+        
+        // Preload all scene images
+        preloadAllSceneImages(loadedScenes);
       } catch (error) {
         console.error("Error parsing stored scenes:", error);
         toast.error("Failed to load scenes.");
@@ -448,25 +451,85 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     }
   }, []);
 
+  // Function to preload all scene images
+  const preloadAllSceneImages = (scenes: SceneWithDuration[]) => {
+    const toastId = toast.loading(`Preloading ${scenes.length} scene images...`);
+    let loadedCount = 0;
+    
+    // Create an array to track which images have loaded
+    const imagePromises = scenes
+      .filter(scene => scene.imageUrl)
+      .map(scene => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          
+          img.onload = () => {
+            loadedCount++;
+            if (loadedCount === scenes.length) {
+              toast.dismiss(toastId);
+              toast.success("All scene images preloaded");
+            }
+            resolve();
+          };
+          
+          img.onerror = () => {
+            console.error(`Failed to preload image: ${scene.imageUrl}`);
+            loadedCount++;
+            if (loadedCount === scenes.length) {
+              toast.dismiss(toastId);
+              toast.success("All scene images preloaded");
+            }
+            resolve();
+          };
+          
+          // Start loading the image
+          img.src = scene.imageUrl as string;
+        });
+      });
+    
+    // Wait for all images to load
+    Promise.all(imagePromises)
+      .then(() => {
+        console.log("All scene images preloaded successfully");
+      })
+      .catch(error => {
+        console.error("Error preloading images:", error);
+      });
+  };
+
   // Playback timer logic
   useEffect(() => {
     let playbackInterval: NodeJS.Timeout | null = null;
     
     if (isPlaying) {
       playbackInterval = setInterval(() => {
-        setCurrentTime((prevTime) => {
-          // If we've reached the end of all scenes, reset to beginning
-          if (prevTime >= totalDuration) {
-            console.log("Reached end of timeline, resetting to beginning");
-            return 0;
+        setCurrentTime(prevTime => {
+          // Calculate which scene we're in and the time within that scene
+          let newTime = prevTime + 0.1; // Update every 100ms
+          
+          // Check if we've reached the end of all scenes
+          if (newTime >= totalDuration) {
+            // Reset to the beginning and pause
+            setIsPlaying(false);
+            setSelectedSceneIndex(0);
+            return 0; // Reset time to 0
           }
           
-          const newTime = prevTime + 0.1; // Update every 100ms
+          // Find which scene we're in based on the current time
+          let accumulatedTime = 0;
+          let currentSceneIdx = 0;
           
-          // Update selected scene if needed
-          const sceneIndex = getSceneIndexAtTime(newTime, scenes, totalDuration);
-          if (sceneIndex !== null && sceneIndex !== selectedSceneIndex) {
-            setSelectedSceneIndex(sceneIndex);
+          for (let i = 0; i < scenes.length; i++) {
+            accumulatedTime += scenes[i].duration;
+            if (newTime < accumulatedTime) {
+              currentSceneIdx = i;
+              break;
+            }
+          }
+          
+          // Update selected scene if it changed
+          if (selectedSceneIndex !== currentSceneIdx) {
+            setSelectedSceneIndex(currentSceneIdx);
           }
           
           return newTime;
@@ -479,7 +542,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
         clearInterval(playbackInterval);
       }
     };
-  }, [isPlaying, totalDuration, scenes, selectedSceneIndex, getSceneIndexAtTime]);
+  }, [isPlaying, scenes, totalDuration, selectedSceneIndex]);
 
   // Update playhead position based on current time
   useEffect(() => {
