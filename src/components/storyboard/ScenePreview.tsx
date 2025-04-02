@@ -1,9 +1,12 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useStoryboard } from './StoryboardContext';
 
 export const ScenePreview = () => {
   const { scenes, selectedSceneIndex } = useStoryboard();
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
   
   // Get the current scene for preview
   const currentSceneForPreview = selectedSceneIndex !== null && 
@@ -12,14 +15,62 @@ export const ScenePreview = () => {
       ? scenes[selectedSceneIndex]
       : null;
 
+  // Preload images and handle transitions
+  useEffect(() => {
+    if (!currentSceneForPreview || !currentSceneForPreview.imageUrl) {
+      setCurrentImage(null);
+      return;
+    }
+
+    // Only set loading if we're changing to a different image
+    if (currentImage !== currentSceneForPreview.imageUrl) {
+      setIsLoading(true);
+      
+      // Preload the new image
+      const img = new Image();
+      img.src = currentSceneForPreview.imageUrl;
+      
+      img.onload = () => {
+        setCurrentImage(currentSceneForPreview.imageUrl as string);
+        setIsLoading(false);
+      };
+      
+      img.onerror = () => {
+        console.error('Failed to load image:', currentSceneForPreview.imageUrl);
+        setIsLoading(false);
+        // Still set the image URL so we can show a fallback
+        setCurrentImage(currentSceneForPreview.imageUrl as string);
+      };
+    }
+  }, [currentSceneForPreview, currentImage]);
+
+  // Preload adjacent images for smoother navigation
+  useEffect(() => {
+    if (selectedSceneIndex === null) return;
+    
+    // Preload next and previous images
+    const preloadIndices = [
+      selectedSceneIndex + 1, 
+      selectedSceneIndex - 1
+    ].filter(idx => idx >= 0 && idx < scenes.length);
+    
+    preloadIndices.forEach(idx => {
+      const imageUrl = scenes[idx]?.imageUrl;
+      if (imageUrl) {
+        const img = new Image();
+        img.src = imageUrl;
+      }
+    });
+  }, [selectedSceneIndex, scenes]);
+
   return (
     <div className="flex-grow bg-black border border-[#1a1f2c]/50 rounded-xl overflow-hidden shadow-xl relative flex items-center justify-center min-h-[300px] md:min-h-[400px]">
-      {currentSceneForPreview ? (
+      {currentImage ? (
         <img
-          key={currentSceneForPreview.id} // Force re-render on scene change
-          src={currentSceneForPreview.imageUrl}
+          key={currentSceneForPreview?.id} // Force re-render on scene change
+          src={currentImage}
           alt={`Scene ${selectedSceneIndex !== null ? selectedSceneIndex + 1 : ''}`}
-          className="max-w-full max-h-full object-contain"
+          className={`max-w-full max-h-full object-contain transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         />
       ) : (
         <div className="text-gray-500 text-center p-4">
@@ -30,6 +81,14 @@ export const ScenePreview = () => {
           <p className="text-sm">Use the timeline below</p>
         </div>
       )}
+      
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="w-10 h-10 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+        </div>
+      )}
+      
       {currentSceneForPreview && selectedSceneIndex !== null && (
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white pointer-events-none">
           <span className="font-semibold drop-shadow-md">Scene {selectedSceneIndex + 1}</span>
