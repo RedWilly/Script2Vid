@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureBucketExists } from '@/services/s3-service';
-import serverConfig from '@/config/server-config';
+import { generateSpeech } from '@/services/tts-openai-service';
 
-// This is a mock function that simulates generating a voice-over
-// In a real implementation, this would use a TTS service
 export async function POST(request: NextRequest) {
   try {
     // Ensure the bucket exists first
@@ -18,24 +16,25 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // This is a mock implementation - in a real app, you would call a TTS service
-    // For now, we'll just return a mock response with the voice ID included
+    // Generate speech using TTS OpenAI API
+    const result = await generateSpeech(script, voiceId || 'OA001');
     
-    // Generate a timestamp for the file name
-    const timestamp = Date.now();
-    const fileName = `${timestamp}-${voiceId || 'OA001'}-audio.mp3`;
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error || 'Failed to generate voice-over' },
+        { status: 500 }
+      );
+    }
     
-    // Mock URL - in a real implementation, this would be the URL of the generated file
-    const url = `${serverConfig.s3.apiUrl}/voiceover/${fileName}`;
-    
-    // Mock duration - in a real implementation, this would be the actual duration
-    const duration = Math.floor(script.length / 20) // Rough estimate: 1 second per 20 characters
-    
+    // The TTS OpenAI API doesn't return a media URL immediately
+    // Instead, it returns a UUID and status, and we need to wait for the webhook
     return NextResponse.json({
       success: true,
-      fileName,
-      url,
-      duration,
+      status: result.status || 'queued',
+      statusPercentage: result.statusPercentage || 0,
+      uuid: result.uuid,
+      message: 'Voice-over generation in progress. You will be notified when it is ready via webhook.',
+      estimatedDuration: result.duration,
       voiceId
     });
   } catch (error) {

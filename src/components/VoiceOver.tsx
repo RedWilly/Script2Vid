@@ -11,6 +11,13 @@ interface VoiceOverFile {
   duration?: number;
 }
 
+interface GenerationStatus {
+  uuid: string;
+  voiceId: string;
+  status: 'queued' | 'converting' | 'completed' | 'failed';
+  statusPercentage?: number;
+}
+
 export const VoiceOver = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [script, setScript] = useState<string>('');
@@ -19,8 +26,10 @@ export const VoiceOver = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<VoiceType>(VOICE_OPTIONS[1]); // Default to Echo
   const [playingSample, setPlayingSample] = useState<string | null>(null);
+  const [pendingGeneration, setPendingGeneration] = useState<GenerationStatus | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sampleAudioRef = useRef<HTMLAudioElement | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load script from localStorage
   useEffect(() => {
@@ -29,6 +38,69 @@ export const VoiceOver = () => {
       setScript(storedScript);
     }
   }, []);
+
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Poll for voice-over status when there's a pending generation
+  useEffect(() => {
+    if (pendingGeneration && pendingGeneration.uuid) {
+      // Start polling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      
+      const checkStatus = async () => {
+        try {
+          const response = await fetch(`/api/voiceover/status/${pendingGeneration.uuid}`);
+          if (!response.ok) {
+            console.error('Error checking voice-over status:', response.statusText);
+            return;
+          }
+          
+          const data = await response.json();
+          
+          if (data.success && data.status === 'completed') {
+            // Voice-over is ready
+            clearInterval(pollingIntervalRef.current!);
+            pollingIntervalRef.current = null;
+            
+            // Add the new file to the list
+            const newFile = {
+              name: data.fileName,
+              url: data.url,
+              duration: data.duration,
+            };
+            
+            setGeneratedFiles(prev => [newFile, ...prev]);
+            setSelectedFile(newFile);
+            setPendingGeneration(null);
+            
+            // Show success message
+            toast.success('Voice-over generated successfully! Check "My Uploads" section.');
+          }
+        } catch (error) {
+          console.error('Error polling for voice-over status:', error);
+        }
+      };
+      
+      // Check immediately and then every 3 seconds
+      checkStatus();
+      pollingIntervalRef.current = setInterval(checkStatus, 3000);
+    }
+    
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [pendingGeneration]);
 
   // Generate voice-over from script
   const handleGenerateVoiceOver = async () => {
@@ -59,17 +131,30 @@ export const VoiceOver = () => {
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Voice-over generated successfully');
-        
-        // Add the new file to the list
-        const newFile = {
-          name: data.fileName,
-          url: data.url,
-          duration: data.duration,
-        };
-        
-        setGeneratedFiles(prev => [newFile, ...prev]);
-        setSelectedFile(newFile);
+        if (data.status && data.uuid) {
+          // Async generation - set pending status and start polling
+          setPendingGeneration({
+            uuid: data.uuid,
+            voiceId: data.voiceId,
+            status: data.status,
+            statusPercentage: data.statusPercentage
+          });
+          
+          toast.info('Voice-over generation in progress. Please wait...');
+        } else if (data.url && data.fileName) {
+          // Immediate generation (unlikely with TTS OpenAI)
+          toast.success('Voice-over generated successfully');
+          
+          // Add the new file to the list
+          const newFile = {
+            name: data.fileName,
+            url: data.url,
+            duration: data.duration,
+          };
+          
+          setGeneratedFiles(prev => [newFile, ...prev]);
+          setSelectedFile(newFile);
+        }
       } else {
         toast.error(`Generation failed: ${data.error}`);
       }
@@ -134,25 +219,26 @@ export const VoiceOver = () => {
         sampleAudioRef.current.currentTime = 0;
         setPlayingSample(null);
       }
-    } else {
-      // Stop any currently playing sample
-      if (sampleAudioRef.current && playingSample) {
-        sampleAudioRef.current.pause();
-        sampleAudioRef.current.currentTime = 0;
-      }
-      
-      // Play the new sample
-      sampleAudioRef.current = new Audio(voice.samplePath);
-      sampleAudioRef.current.onended = () => setPlayingSample(null);
-      sampleAudioRef.current.play()
-        .then(() => {
-          setPlayingSample(voice.id);
-        })
-        .catch(err => {
-          console.error('Error playing sample:', err);
-          toast.error(`Failed to play sample for ${voice.name}`);
-        });
+      return;
     }
+    
+    // Stop any currently playing sample
+    if (sampleAudioRef.current && playingSample) {
+      sampleAudioRef.current.pause();
+      sampleAudioRef.current.currentTime = 0;
+    }
+    
+    // Play the new sample
+    sampleAudioRef.current = new Audio(voice.samplePath);
+    sampleAudioRef.current.onended = () => setPlayingSample(null);
+    sampleAudioRef.current.play()
+      .then(() => {
+        setPlayingSample(voice.id);
+      })
+      .catch(err => {
+        console.error('Error playing sample:', err);
+        toast.error(`Failed to play sample for ${voice.name}`);
+      });
   };
 
   return (
@@ -235,26 +321,41 @@ export const VoiceOver = () => {
         </div>
       </div>
       
-      {/* Generate Button */}
-      <Button
-        onClick={handleGenerateVoiceOver}
-        disabled={isGenerating || !script}
-        className="mb-5 bg-purple-600 hover:bg-purple-700 text-white h-12 rounded-md"
-      >
-        {isGenerating ? (
-          <>
-            <div className="w-5 h-5 border-2 border-t-white border-white/30 rounded-full animate-spin mr-2"></div>
-            Generating with {selectedVoice.name}...
-          </>
-        ) : (
-          <>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-            </svg>
-            Generate with {selectedVoice.name}
-          </>
-        )}
-      </Button>
+      {/* Generate Button or Loading State */}
+      {pendingGeneration ? (
+        <div className="mb-5 bg-[#121620] rounded-md p-4 border border-purple-500/30">
+          <div className="flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-t-purple-500 border-purple-500/30 rounded-full animate-spin mr-3"></div>
+            <div>
+              <p className="text-white font-medium">Voice-over generation in progress...</p>
+              <p className="text-sm text-gray-400">
+                Using {VOICE_OPTIONS.find(v => v.id === pendingGeneration.voiceId)?.name || 'selected voice'} • 
+                {pendingGeneration.statusPercentage ? ` ${pendingGeneration.statusPercentage}% complete` : ' Processing'}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Button
+          onClick={handleGenerateVoiceOver}
+          disabled={isGenerating || !script}
+          className="mb-5 bg-purple-600 hover:bg-purple-700 text-white h-12 rounded-md"
+        >
+          {isGenerating ? (
+            <>
+              <div className="w-5 h-5 border-2 border-t-white border-white/30 rounded-full animate-spin mr-2"></div>
+              Generating with {selectedVoice.name}...
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              </svg>
+              Generate with {selectedVoice.name}
+            </>
+          )}
+        </Button>
+      )}
       
       {/* Hidden audio element for playback */}
       <audio 
@@ -308,7 +409,7 @@ export const VoiceOver = () => {
         </div>
       )}
       
-      {generatedFiles.length === 0 && (
+      {generatedFiles.length === 0 && !pendingGeneration && (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-sm text-gray-400 italic">
             Select a voice and generate your first voice-over

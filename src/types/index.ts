@@ -19,6 +19,7 @@ export interface VoiceType {
   age: 'Young' | 'Old';
   color?: string; // Optional color for the avatar background
   samplePath?: string; // Path to the sample audio file
+  // ttsId: string; // TTS OpenAI voice ID
 }
 
 export const VOICE_OPTIONS: VoiceType[] = [
@@ -29,7 +30,8 @@ export const VOICE_OPTIONS: VoiceType[] = [
     gender: 'Male',
     age: 'Young',
     color: '#3B82F6', // blue
-    samplePath: '/sample/Alloy.mp3'
+    samplePath: '/sample/Alloy.mp3',
+    // ttsId: 'alloy'
   },
   {
     id: 'OA002',
@@ -38,7 +40,8 @@ export const VOICE_OPTIONS: VoiceType[] = [
     gender: 'Male',
     age: 'Young',
     color: '#8B5CF6', // purple
-    samplePath: '/sample/Echo.mp3'
+    samplePath: '/sample/Echo.mp3',
+    // ttsId: 'echo'
   },
   {
     id: 'OA003',
@@ -47,7 +50,8 @@ export const VOICE_OPTIONS: VoiceType[] = [
     gender: 'Male',
     age: 'Young',
     color: '#F59E0B', // amber
-    samplePath: '/sample/Fable.mp3'
+    samplePath: '/sample/Fable.mp3',
+    // ttsId: 'fable'
   },
   {
     id: 'OA004',
@@ -56,7 +60,8 @@ export const VOICE_OPTIONS: VoiceType[] = [
     gender: 'Male',
     age: 'Old',
     color: '#EF4444', // red
-    samplePath: '/sample/Onyx.mp3'
+    samplePath: '/sample/Onyx.mp3',
+    // ttsId: 'onyx'
   },
   {
     id: 'OA005',
@@ -65,7 +70,8 @@ export const VOICE_OPTIONS: VoiceType[] = [
     gender: 'Female',
     age: 'Young',
     color: '#EC4899', // pink
-    samplePath: '/sample/Nova.mp3'
+    samplePath: '/sample/Nova.mp3',
+    // ttsId: 'nova'
   },
   {
     id: 'OA006',
@@ -74,6 +80,7 @@ export const VOICE_OPTIONS: VoiceType[] = [
     gender: 'Female',
     age: 'Young',
     color: '#9333EA', // purple
-    samplePath: '/sample/Shimmer.mp3'
+    samplePath: '/sample/Shimmer.mp3',
+    // ttsId: 'shimmer'
   }
 ];

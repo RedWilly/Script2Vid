@@ -95,6 +95,36 @@ export async function uploadFile(file: File): Promise<string | null> {
   }
 }
 
+// Upload buffer to MinIO
+export async function uploadBufferToS3(
+  buffer: Buffer,
+  fileName: string,
+  contentType: string
+): Promise<string | null> {
+  try {
+    // Ensure bucket exists
+    await ensureBucketExists();
+    
+    // Upload buffer
+    const client = await getMinioClient();
+    await client.putObject(
+      BUCKET_NAME, 
+      fileName, 
+      buffer, 
+      buffer.length,
+      { 'Content-Type': contentType } as any // Type assertion to bypass TypeScript error
+    );
+    
+    // Return the URL to the uploaded file
+    const fileUrl = `${serverConfig.s3.apiUrl}/${BUCKET_NAME}/${fileName}`;
+    console.log(`Buffer uploaded successfully as ${fileName}: ${fileUrl}`);
+    return fileUrl;
+  } catch (error) {
+    console.error('Error uploading buffer:', error);
+    return null;
+  }
+}
+
 // List all files in the bucket
 export async function listFiles(): Promise<{ name: string; url: string; size: number; lastModified: Date }[]> {
   try {
