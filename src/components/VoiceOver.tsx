@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { VOICE_OPTIONS, VoiceType } from '@/types';
 
 interface VoiceOverFile {
   name: string;
@@ -16,7 +17,10 @@ export const VoiceOver = () => {
   const [generatedFiles, setGeneratedFiles] = useState<VoiceOverFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<VoiceOverFile | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<VoiceType>(VOICE_OPTIONS[1]); // Default to Echo
+  const [playingSample, setPlayingSample] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const sampleAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load script from localStorage
   useEffect(() => {
@@ -41,7 +45,10 @@ export const VoiceOver = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ script }),
+        body: JSON.stringify({ 
+          script,
+          voiceId: selectedVoice.id
+        }),
       });
       
       if (!response.ok) {
@@ -104,14 +111,127 @@ export const VoiceOver = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Toggle favorite (placeholder for future implementation)
+  const toggleFavorite = (voiceId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // This would be implemented to save favorites to localStorage or backend
+    toast.info(`${voiceId} favorite toggled`);
+  };
+
+  // Sample voice
+  const sampleVoice = (voice: VoiceType, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!voice.samplePath) {
+      toast.error(`No sample available for ${voice.name}`);
+      return;
+    }
+    
+    if (playingSample === voice.id) {
+      // Stop the current sample
+      if (sampleAudioRef.current) {
+        sampleAudioRef.current.pause();
+        sampleAudioRef.current.currentTime = 0;
+        setPlayingSample(null);
+      }
+    } else {
+      // Stop any currently playing sample
+      if (sampleAudioRef.current && playingSample) {
+        sampleAudioRef.current.pause();
+        sampleAudioRef.current.currentTime = 0;
+      }
+      
+      // Play the new sample
+      sampleAudioRef.current = new Audio(voice.samplePath);
+      sampleAudioRef.current.onended = () => setPlayingSample(null);
+      sampleAudioRef.current.play()
+        .then(() => {
+          setPlayingSample(voice.id);
+        })
+        .catch(err => {
+          console.error('Error playing sample:', err);
+          toast.error(`Failed to play sample for ${voice.name}`);
+        });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-4">
-        <h3 className="text-sm font-medium mb-2">Script Preview</h3>
-        <div className="bg-gray-800/50 rounded-lg p-3 max-h-32 overflow-y-auto">
+      {/* Script Preview Section */}
+      <div className="mb-5">
+        <h3 className="text-sm font-medium mb-2 text-white">Script Preview</h3>
+        <div className="bg-[#121620] rounded-md p-3 max-h-24 overflow-y-auto border border-gray-800">
           <p className="text-sm text-gray-300">
             {script ? script.substring(0, 200) + (script.length > 200 ? '...' : '') : 'No script found'}
           </p>
+        </div>
+      </div>
+      
+      {/* Voice Selection Grid */}
+      <div className="mb-5">
+        <h3 className="text-sm font-medium mb-3 text-white">Select Voice</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {VOICE_OPTIONS.map((voice) => (
+            <div 
+              key={voice.id}
+              className={`relative p-3 rounded-md cursor-pointer transition-all ${
+                selectedVoice.id === voice.id 
+                  ? 'bg-[#2A1F53] border border-purple-500/50' 
+                  : 'bg-[#121620] border border-gray-800 hover:border-gray-700'
+              }`}
+              onClick={() => setSelectedVoice(voice)}
+            >
+              <div className="flex justify-between items-start">
+                <h4 className="font-medium text-base text-white">{voice.name}</h4>
+                <div className="text-xs text-gray-500">{voice.id}</div>
+              </div>
+              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{voice.description}</p>
+              
+              <div className="flex flex-col space-y-2 mt-3">
+                <div className="flex space-x-2">
+                  <span className="text-xs bg-[#1A1E2E] px-2 py-1 rounded text-gray-300">
+                    {voice.age}
+                  </span>
+                  <span className="text-xs bg-[#1A1E2E] px-2 py-1 rounded text-gray-300">
+                    {voice.gender}
+                  </span>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <button 
+                    className={`${
+                      playingSample === voice.id 
+                        ? 'text-purple-400' 
+                        : selectedVoice.id === voice.id 
+                          ? 'text-purple-400 hover:text-white' 
+                          : 'text-gray-400 hover:text-white'
+                    }`}
+                    onClick={(e) => sampleVoice(voice, e)}
+                    aria-label={`Play sample of ${voice.name}`}
+                  >
+                    {playingSample === voice.id ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </button>
+                  <button 
+                    className="text-gray-400 hover:text-yellow-400"
+                    onClick={(e) => toggleFavorite(voice.id, e)}
+                    aria-label={`Add ${voice.name} to favorites`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       
@@ -119,19 +239,19 @@ export const VoiceOver = () => {
       <Button
         onClick={handleGenerateVoiceOver}
         disabled={isGenerating || !script}
-        className="mb-4 bg-purple-600 hover:bg-purple-700 text-white"
+        className="mb-5 bg-purple-600 hover:bg-purple-700 text-white h-12 rounded-md"
       >
         {isGenerating ? (
           <>
-            <div className="w-4 h-4 border-2 border-t-white border-white/30 rounded-full animate-spin mr-2"></div>
-            Generating...
+            <div className="w-5 h-5 border-2 border-t-white border-white/30 rounded-full animate-spin mr-2"></div>
+            Generating with {selectedVoice.name}...
           </>
         ) : (
           <>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
             </svg>
-            Generate from Script
+            Generate with {selectedVoice.name}
           </>
         )}
       </Button>
@@ -145,6 +265,56 @@ export const VoiceOver = () => {
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       />
+      
+      {/* Generated Files List */}
+      {generatedFiles.length > 0 && (
+        <div className="flex-1 overflow-y-auto">
+          <h3 className="text-sm font-medium mb-2 text-white">Generated Voice-Overs</h3>
+          <ul className="space-y-2">
+            {generatedFiles.map((file, index) => (
+              <li 
+                key={index}
+                className={`p-2 rounded-md cursor-pointer transition-colors ${
+                  selectedFile?.url === file.url 
+                    ? 'bg-purple-500/20 border border-purple-500/30' 
+                    : 'hover:bg-gray-700/30 border border-transparent'
+                }`}
+                onClick={() => handlePlayPause(file)}
+              >
+                <div className="flex items-center">
+                  <div className="mr-3 text-purple-400 cursor-pointer">
+                    {selectedFile?.url === file.url && isPlaying ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{file.name}</p>
+                    {file.duration && (
+                      <p className="text-xs text-gray-400">
+                        {formatDuration(file.duration)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {generatedFiles.length === 0 && (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-gray-400 italic">
+            Select a voice and generate your first voice-over
+          </p>
+        </div>
+      )}
     </div>
   );
 };
