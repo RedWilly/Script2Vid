@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     // Generate VTT subtitles
     console.log('Generating VTT subtitles for transcript:', transcript.id);
-    const vtt = await client.transcripts.subtitles(transcript.id, 'vtt', 32);
+    const vtt = await client.transcripts.subtitles(transcript.id, 'vtt', 35);
     
     // Upload VTT file to S3
     const fileName = `caption-${Date.now()}.vtt`;
