@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Caption from './Caption';
 
 interface TextPanelProps {
   isVisible: boolean;
@@ -50,20 +51,7 @@ const TextPanel: React.FC<TextPanelProps> = ({ isVisible }) => {
               <p>Nothing here yet</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              <button
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors"
-              >
-                Generate Caption
-              </button>
-              
-              <div className="mt-4">
-                <h3 className="text-white text-sm font-medium mb-2">Your Captions</h3>
-                <div className="bg-[#1a1f2c] rounded-md p-4 text-gray-400 text-center">
-                  <p>No captions yet</p>
-                </div>
-              </div>
-            </div>
+            <Caption />
           )}
         </div>
       </div>

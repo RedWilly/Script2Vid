@@ -27,6 +27,7 @@ const getMinioClient = async () => {
 };
 
 const BUCKET_NAME = 'voiceover';
+const CAPTIONS_BUCKET_NAME = 'captions';
 
 // Create bucket if it doesn't exist
 export async function ensureBucketExists() {
@@ -36,27 +37,19 @@ export async function ensureBucketExists() {
     
     if (!exists) {
       await client.makeBucket(BUCKET_NAME, 'us-east-1');
-      
-      // Set bucket policy to allow public read access
-      const policy = {
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Effect: 'Allow',
-            Principal: { AWS: ['*'] },
-            Action: ['s3:GetObject'],
-            Resource: [`arn:aws:s3:::${BUCKET_NAME}/*`],
-          },
-        ],
-      };
-      
-      await client.setBucketPolicy(BUCKET_NAME, JSON.stringify(policy));
-      console.log(`Bucket '${BUCKET_NAME}' created with public read policy`);
+      console.log(`Bucket '${BUCKET_NAME}' created successfully`);
     }
-    return true;
+    
+    // Also ensure captions bucket exists
+    const captionsBucketExists = await client.bucketExists(CAPTIONS_BUCKET_NAME);
+    
+    if (!captionsBucketExists) {
+      await client.makeBucket(CAPTIONS_BUCKET_NAME, 'us-east-1');
+      console.log(`Bucket '${CAPTIONS_BUCKET_NAME}' created successfully`);
+    }
   } catch (error) {
     console.error('Error ensuring bucket exists:', error);
-    return false;
+    throw error;
   }
 }
 
@@ -172,5 +165,72 @@ export async function deleteFile(fileName: string): Promise<boolean> {
   } catch (error) {
     console.error('Error deleting file:', error);
     return false;
+  }
+}
+
+// Upload caption file to S3
+export async function uploadCaptionFile(
+  file: Buffer,
+  fileName: string,
+  contentType: string
+): Promise<string> {
+  try {
+    await ensureBucketExists();
+    const client = await getMinioClient();
+    
+    // Create a unique file name to avoid collisions
+    const uniqueFileName = `${Date.now()}-${fileName}`;
+    
+    await client.putObject(
+      CAPTIONS_BUCKET_NAME,
+      uniqueFileName,
+      file,
+      {
+        'Content-Type': contentType,
+      }
+    );
+    
+    // Generate a presigned URL for the uploaded file
+    const presignedUrl = await client.presignedGetObject(
+      CAPTIONS_BUCKET_NAME,
+      uniqueFileName,
+      24 * 60 * 60 // URL expires in 24 hours
+    );
+    
+    return presignedUrl;
+  } catch (error) {
+    console.error('Error uploading caption file:', error);
+    throw error;
+  }
+}
+
+// List all caption files in the bucket
+export async function listCaptionFiles(): Promise<{ name: string; url: string }[]> {
+  try {
+    await ensureBucketExists();
+    const client = await getMinioClient();
+    
+    const objectsStream = client.listObjects(CAPTIONS_BUCKET_NAME, '', true);
+    const objects: { name: string; url: string }[] = [];
+    
+    for await (const obj of objectsStream) {
+      if (obj.name) {
+        const url = await client.presignedGetObject(
+          CAPTIONS_BUCKET_NAME,
+          obj.name,
+          24 * 60 * 60 // URL expires in 24 hours
+        );
+        
+        objects.push({
+          name: obj.name.split('-').slice(1).join('-'), // Remove timestamp prefix
+          url,
+        });
+      }
+    }
+    
+    return objects;
+  } catch (error) {
+    console.error('Error listing caption files:', error);
+    throw error;
   }
 }
