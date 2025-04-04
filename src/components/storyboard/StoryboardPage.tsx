@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/Sidebar";
 import { StoryboardProvider, useStoryboard } from './StoryboardContext';
 import ScenePreview from './ScenePreview';
-import TimelineControls from './TimelineControls';
 import TimelineRuler from './TimelineRuler';
-import SceneTimeline from './SceneTimeline';
 import VideoExport from './VideoExport';
 
 // Inner component that uses the context
@@ -53,19 +51,10 @@ const StoryboardContent = () => {
             {/* Preview Area */}
             <ScenePreview />
 
-            {/* Timeline Section */}
+            {/* Timeline Section - Consolidated */}
             <div className="flex-shrink-0 bg-black border border-[#1a1f2c]/50 rounded-xl p-3 sm:p-4 shadow-xl">
-              {/* Ruler and Playhead */}
+              {/* Consolidated Timeline with Ruler, Controls, and Thumbnails */}
               <TimelineRuler />
-              
-              {/* Controls + Thumbnails Row */}
-              <div className="flex items-center gap-3">
-                {/* Play Button and Time Display */}
-                <TimelineControls />
-
-                {/* Scrollable Thumbnails */}
-                <SceneTimeline />
-              </div>
             </div>
           </main>
         </div>
