@@ -6,6 +6,15 @@ export interface SceneWithDuration extends Scene {
   duration: number;
 }
 
+// Voice-over file interface
+export interface VoiceOverFile {
+  id: string;
+  name: string;
+  url: string;
+  duration: number;
+  voiceId: string;
+}
+
 // Constants
 export const MIN_SCENE_DURATION = 0.5; // Minimum duration in seconds
 export const DEFAULT_SCENE_DURATION = 5.0; // Default duration in seconds

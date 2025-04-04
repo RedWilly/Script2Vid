@@ -4,12 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { VOICE_OPTIONS, VoiceType } from '@/types';
-
-interface VoiceOverFile {
-  name: string;
-  url: string;
-  duration?: number;
-}
+import { useStoryboard } from './storyboard/StoryboardContext';
+import { VoiceOverFile } from './storyboard/types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface GenerationStatus {
   uuid: string;
@@ -19,6 +16,7 @@ interface GenerationStatus {
 }
 
 export const VoiceOver = () => {
+  const { handleAddVoiceOver, voiceOver: selectedTimelineVoiceOver } = useStoryboard();
   const [isGenerating, setIsGenerating] = useState(false);
   const [script, setScript] = useState<string>('');
   const [generatedFiles, setGeneratedFiles] = useState<VoiceOverFile[]>([]);
@@ -73,9 +71,11 @@ export const VoiceOver = () => {
             
             // Add the new file to the list
             const newFile = {
+              id: uuidv4(),
               name: data.fileName,
               url: data.url,
-              duration: data.duration,
+              duration: data.duration || 0,
+              voiceId: selectedVoice.id
             };
             
             setGeneratedFiles(prev => [newFile, ...prev]);
@@ -102,98 +102,42 @@ export const VoiceOver = () => {
     };
   }, [pendingGeneration]);
 
-  // Generate voice-over from script
-  const handleGenerateVoiceOver = async () => {
-    if (!script) {
-      toast.error('No script found. Please create a script first.');
-      return;
-    }
-
-    setIsGenerating(true);
-    
-    try {
-      const response = await fetch('/api/voiceover/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          script,
-          voiceId: selectedVoice.id
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Server error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        if (data.status && data.uuid) {
-          // Async generation - set pending status and start polling
-          setPendingGeneration({
-            uuid: data.uuid,
-            voiceId: data.voiceId,
-            status: data.status,
-            statusPercentage: data.statusPercentage
-          });
-          
-          toast.info('Voice-over generation in progress. Please wait...');
-        } else if (data.url && data.fileName) {
-          // Immediate generation (unlikely with TTS OpenAI)
-          toast.success('Voice-over generated successfully');
-          
-          // Add the new file to the list
-          const newFile = {
-            name: data.fileName,
-            url: data.url,
-            duration: data.duration,
-          };
-          
-          setGeneratedFiles(prev => [newFile, ...prev]);
-          setSelectedFile(newFile);
-        }
-      } else {
-        toast.error(`Generation failed: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error generating voice-over:', error);
-      toast.error('Failed to generate voice-over');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   // Handle playing audio
-  const handlePlayPause = (file: VoiceOverFile) => {
-    if (!audioRef.current) return;
+  const handlePlayPause = (file: VoiceOverFile, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent triggering the parent onClick
+    }
     
-    if (selectedFile?.url === file.url && isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      setSelectedFile(file);
-      // We need to wait for the audio element to update its src
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.play()
-            .then(() => setIsPlaying(true))
-            .catch(err => {
-              console.error('Error playing audio:', err);
-              toast.error('Failed to play audio');
-            });
-        }
-      }, 50);
+    if (audioRef.current) {
+      if (selectedFile?.url === file.url && isPlaying) {
+        // Pause if already playing this file
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        // Select and play this file
+        setSelectedFile(file);
+        audioRef.current.src = file.url;
+        audioRef.current.play()
+          .then(() => setIsPlaying(true))
+          .catch(error => {
+            console.error('Error playing audio:', error);
+            toast.error('Failed to play audio');
+          });
+      }
     }
   };
 
-  // Format duration
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  // Handle selecting a file without playing
+  const handleSelectFile = (file: VoiceOverFile) => {
+    setSelectedFile(file);
+  };
+
+  // Add voice-over to timeline
+  const handleAddToTimeline = (file: VoiceOverFile, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent triggering the parent onClick
+    }
+    handleAddVoiceOver(file);
   };
 
   // Toggle favorite (placeholder for future implementation)
@@ -239,6 +183,76 @@ export const VoiceOver = () => {
         console.error('Error playing sample:', err);
         toast.error(`Failed to play sample for ${voice.name}`);
       });
+  };
+
+  // Format duration
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Generate voice-over from script
+  const handleGenerateVoiceOver = async () => {
+    if (!script) {
+      toast.error('No script found. Please create a script first.');
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const response = await fetch('/api/voiceover/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          script,
+          voiceId: selectedVoice.id
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Server error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // If immediate result is available
+        if (data.status === 'completed') {
+          const newFile: VoiceOverFile = {
+            id: uuidv4(),
+            name: data.fileName,
+            url: data.url,
+            duration: data.duration || 0,
+            voiceId: selectedVoice.id
+          };
+          
+          setGeneratedFiles(prev => [newFile, ...prev]);
+          setSelectedFile(newFile);
+          toast.success('Voice-over generated successfully!');
+        } else {
+          // Set pending generation to poll for status
+          setPendingGeneration({
+            uuid: data.uuid,
+            voiceId: selectedVoice.id,
+            status: data.status,
+            statusPercentage: data.statusPercentage
+          });
+          toast.success('Voice-over generation started. This may take a moment...');
+        }
+      } else {
+        throw new Error(data.message || 'Failed to generate voice-over');
+      }
+    } catch (error) {
+      console.error('Error generating voice-over:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate voice-over');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -297,7 +311,7 @@ export const VoiceOver = () => {
                   >
                     {playingSample === voice.id ? (
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M10 18a8 8 0 11-16 0 8 8 0 0116 0zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V8a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     ) : (
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -372,39 +386,61 @@ export const VoiceOver = () => {
         <div className="flex-1 overflow-y-auto">
           <h3 className="text-sm font-medium mb-2 text-white">Generated Voice-Overs</h3>
           <ul className="space-y-2">
-            {generatedFiles.map((file, index) => (
-              <li 
-                key={index}
-                className={`p-2 rounded-md cursor-pointer transition-colors ${
-                  selectedFile?.url === file.url 
-                    ? 'bg-purple-500/20 border border-purple-500/30' 
-                    : 'hover:bg-gray-700/30 border border-transparent'
-                }`}
-                onClick={() => handlePlayPause(file)}
-              >
-                <div className="flex items-center">
-                  <div className="mr-3 text-purple-400 cursor-pointer">
-                    {selectedFile?.url === file.url && isPlaying ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
-                    )}
+            {generatedFiles.map((file, index) => {
+              const isSelectedForTimeline = selectedTimelineVoiceOver?.id === file.id;
+              
+              return (
+                <li 
+                  key={index}
+                  className={`p-2 rounded-md cursor-pointer transition-colors ${
+                    selectedFile?.url === file.url 
+                      ? 'bg-purple-500/20 border border-purple-500/30' 
+                      : isSelectedForTimeline
+                        ? 'bg-green-500/20 border border-green-500/30'
+                        : 'hover:bg-gray-700/30 border border-transparent'
+                  }`}
+                  onClick={() => handleSelectFile(file)}
+                >
+                  <div className="flex items-center">
+                    <div 
+                      className="mr-3 text-purple-400 cursor-pointer"
+                      onClick={(e) => handlePlayPause(file, e)}
+                    >
+                      {selectedFile?.url === file.url && isPlaying ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{file.name}</p>
+                      {file.duration && (
+                        <p className="text-xs text-gray-400">
+                          {formatDuration(file.duration)}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToTimeline(file, e);
+                      }}
+                      className={`ml-2 px-2 py-1 h-8 text-xs ${
+                        isSelectedForTimeline 
+                          ? 'bg-green-600 hover:bg-green-700 text-white' 
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                    >
+                      {isSelectedForTimeline ? 'Added to Timeline' : 'Add to Timeline'}
+                    </Button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{file.name}</p>
-                    {file.duration && (
-                      <p className="text-xs text-gray-400">
-                        {formatDuration(file.duration)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

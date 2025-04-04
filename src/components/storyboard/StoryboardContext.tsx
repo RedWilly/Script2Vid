@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { SceneWithDuration, MIN_SCENE_DURATION, DEFAULT_SCENE_DURATION } from './types';
+import { SceneWithDuration, MIN_SCENE_DURATION, DEFAULT_SCENE_DURATION, VoiceOverFile } from './types';
 
 interface StoryboardContextType {
   // Scene state
@@ -19,6 +19,11 @@ interface StoryboardContextType {
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   currentTimeDisplay: string;
+  
+  // Voice-over state
+  voiceOver: VoiceOverFile | null;
+  setVoiceOver: React.Dispatch<React.SetStateAction<VoiceOverFile | null>>;
+  isVoiceOverPlaying: boolean;
   
   // Trim state
   isTrimming: boolean;
@@ -60,6 +65,11 @@ interface StoryboardContextType {
   handleDeleteScene: (indexToDelete: number) => void;
   handlePlayPause: () => void;
   handleExportVideo: () => Promise<void>;
+  
+  // Voice-over methods
+  handleAddVoiceOver: (voiceOverFile: VoiceOverFile) => void;
+  handlePlayVoiceOver: () => void;
+  handlePauseVoiceOver: () => void;
 }
 
 const StoryboardContext = createContext<StoryboardContextType | undefined>(undefined);
@@ -86,6 +96,11 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const [currentTimeDisplay, setCurrentTimeDisplay] = useState('00:00');
   const [totalDuration, setTotalDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Voice-over state
+  const [voiceOver, setVoiceOver] = useState<VoiceOverFile | null>(null);
+  const [isVoiceOverPlaying, setIsVoiceOverPlaying] = useState(false);
+  const voiceOverAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Trim state
   const [isDraggingLeftTrim, setIsDraggingLeftTrim] = useState(false);
@@ -497,6 +512,82 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       });
   };
 
+  // Create audio element for voice-over playback
+  useEffect(() => {
+    // Create audio element if it doesn't exist
+    if (!voiceOverAudioRef.current) {
+      voiceOverAudioRef.current = new Audio();
+      
+      // Add event listeners
+      voiceOverAudioRef.current.addEventListener('play', () => setIsVoiceOverPlaying(true));
+      voiceOverAudioRef.current.addEventListener('pause', () => setIsVoiceOverPlaying(false));
+      voiceOverAudioRef.current.addEventListener('ended', () => setIsVoiceOverPlaying(false));
+    }
+    
+    // Clean up on unmount
+    return () => {
+      if (voiceOverAudioRef.current) {
+        voiceOverAudioRef.current.pause();
+        voiceOverAudioRef.current.removeEventListener('play', () => setIsVoiceOverPlaying(true));
+        voiceOverAudioRef.current.removeEventListener('pause', () => setIsVoiceOverPlaying(false));
+        voiceOverAudioRef.current.removeEventListener('ended', () => setIsVoiceOverPlaying(false));
+      }
+    };
+  }, []);
+  
+  // Update voice-over audio source when voiceOver changes
+  useEffect(() => {
+    if (voiceOverAudioRef.current && voiceOver) {
+      voiceOverAudioRef.current.src = voiceOver.url;
+      voiceOverAudioRef.current.load();
+    }
+  }, [voiceOver]);
+  
+  // Sync voice-over playback with timeline playback
+  useEffect(() => {
+    if (voiceOverAudioRef.current) {
+      if (isPlaying) {
+        // Start voice-over playback when timeline is playing
+        voiceOverAudioRef.current.play().catch(error => {
+          console.error('Error playing voice-over:', error);
+        });
+      } else {
+        // Pause voice-over when timeline is paused
+        voiceOverAudioRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+  
+  // Update voice-over current time when timeline current time changes
+  useEffect(() => {
+    if (voiceOverAudioRef.current && voiceOver) {
+      voiceOverAudioRef.current.currentTime = currentTime;
+    }
+  }, [currentTime, voiceOver]);
+
+  // Handle adding a voice-over to the timeline
+  const handleAddVoiceOver = useCallback((voiceOverFile: VoiceOverFile) => {
+    setVoiceOver(voiceOverFile);
+    toast.success(`Voice-over "${voiceOverFile.name}" added to timeline`);
+  }, []);
+  
+  // Handle playing voice-over
+  const handlePlayVoiceOver = useCallback(() => {
+    if (voiceOverAudioRef.current && voiceOver) {
+      voiceOverAudioRef.current.play().catch(error => {
+        console.error('Error playing voice-over:', error);
+        toast.error('Failed to play voice-over');
+      });
+    }
+  }, [voiceOver]);
+  
+  // Handle pausing voice-over
+  const handlePauseVoiceOver = useCallback(() => {
+    if (voiceOverAudioRef.current) {
+      voiceOverAudioRef.current.pause();
+    }
+  }, []);
+
   // Playback timer logic
   useEffect(() => {
     let playbackInterval: NodeJS.Timeout | null = null;
@@ -557,7 +648,8 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     }
   }, [currentTime, totalDuration, isDraggingLeftTrim, isDraggingRightTrim, isDraggingPlayhead, scenes, selectedSceneIndex, updatePlayheadPosition, getSceneIndexAtTime]);
 
-  const value = {
+  // Context value
+  const contextValue: StoryboardContextType = {
     // Scene state
     scenes,
     setScenes,
@@ -572,6 +664,11 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     isPlaying,
     setIsPlaying,
     currentTimeDisplay,
+    
+    // Voice-over state
+    voiceOver,
+    setVoiceOver,
+    isVoiceOverPlaying,
     
     // Trim state
     isTrimming,
@@ -613,10 +710,15 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     handleDeleteScene,
     handlePlayPause,
     handleExportVideo,
+    
+    // Voice-over methods
+    handleAddVoiceOver,
+    handlePlayVoiceOver,
+    handlePauseVoiceOver,
   };
 
   return (
-    <StoryboardContext.Provider value={value}>
+    <StoryboardContext.Provider value={contextValue}>
       {children}
     </StoryboardContext.Provider>
   );

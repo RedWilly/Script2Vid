@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useStoryboard } from './storyboard/StoryboardContext';
+import { VoiceOverFile as TimelineVoiceOverFile } from './storyboard/types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface VoiceOverFile {
   name: string;
@@ -13,6 +16,7 @@ interface VoiceOverFile {
 }
 
 const MyUploads = () => {
+  const { handleAddVoiceOver, voiceOver: selectedTimelineVoiceOver } = useStoryboard();
   const [files, setFiles] = useState<VoiceOverFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<VoiceOverFile | null>(null);
@@ -87,7 +91,11 @@ const MyUploads = () => {
   });
 
   // Handle playing audio
-  const handlePlayPause = (file: VoiceOverFile) => {
+  const handlePlayPause = (file: VoiceOverFile, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent triggering the parent onClick
+    }
+    
     if (!audioRef.current) return;
     
     if (selectedFile?.url === file.url && isPlaying) {
@@ -107,6 +115,52 @@ const MyUploads = () => {
         }
       }, 50);
     }
+  };
+
+  // Handle selecting a file without playing
+  const handleSelectFile = (file: VoiceOverFile) => {
+    setSelectedFile(file);
+  };
+
+  // Add voice-over to timeline
+  const handleAddToTimeline = (file: VoiceOverFile, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent triggering the parent onClick
+    }
+    
+    // Convert to the format expected by the StoryboardContext
+    const timelineVoiceOver: TimelineVoiceOverFile = {
+      id: uuidv4(),
+      name: file.name,
+      url: file.url,
+      duration: 0, // We don't have duration info, so we'll use 0 as a placeholder
+      voiceId: 'custom-upload' // Custom identifier for uploaded files
+    };
+    
+    // Get audio duration if possible
+    const audio = new Audio(file.url);
+    audio.addEventListener('loadedmetadata', () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        timelineVoiceOver.duration = audio.duration;
+        handleAddVoiceOver(timelineVoiceOver);
+      } else {
+        // If we can't get the duration, use a default value
+        timelineVoiceOver.duration = 30; // Default to 30 seconds
+        handleAddVoiceOver(timelineVoiceOver);
+      }
+    });
+    
+    audio.addEventListener('error', () => {
+      // If there's an error loading the audio, use a default duration
+      timelineVoiceOver.duration = 30; // Default to 30 seconds
+      handleAddVoiceOver(timelineVoiceOver);
+      console.error('Error loading audio to get duration');
+    });
+    
+    // Load the audio to trigger the loadedmetadata event
+    audio.load();
+    
+    toast.success(`Added "${file.name}" to timeline`);
   };
 
   // Format file size
@@ -163,37 +217,57 @@ const MyUploads = () => {
           <p className="text-sm text-gray-400 italic">No voice-over files found</p>
         ) : (
           <ul className="space-y-2">
-            {files.map((file, index) => (
-              <li 
-                key={index}
-                className={`p-2 rounded-md cursor-pointer transition-colors ${
-                  selectedFile?.url === file.url 
-                    ? 'bg-blue-500/20 border border-blue-500/30' 
-                    : 'hover:bg-gray-700/30 border border-transparent'
-                }`}
-                onClick={() => handlePlayPause(file)}
-              >
-                <div className="flex items-center">
-                  <div className="mr-3 text-blue-400 cursor-pointer">
-                    {selectedFile?.url === file.url && isPlaying ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
-                    )}
+            {files.map((file, index) => {
+              const isSelectedForTimeline = selectedTimelineVoiceOver?.name === file.name && 
+                                          selectedTimelineVoiceOver?.url === file.url;
+              
+              return (
+                <li 
+                  key={index}
+                  className={`p-2 rounded-md cursor-pointer transition-colors ${
+                    selectedFile?.url === file.url 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : isSelectedForTimeline
+                        ? 'bg-green-500/20 border border-green-500/30'
+                        : 'hover:bg-gray-700/30 border border-transparent'
+                  }`}
+                  onClick={() => handleSelectFile(file)}
+                >
+                  <div className="flex items-center">
+                    <div 
+                      className="mr-3 text-blue-400 cursor-pointer"
+                      onClick={(e) => handlePlayPause(file, e)}
+                    >
+                      {selectedFile?.url === file.url && isPlaying ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{file.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {file.size ? formatFileSize(file.size) : 'Unknown size'}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={(e) => handleAddToTimeline(file, e)}
+                      className={`ml-2 px-2 py-1 h-8 text-xs ${
+                        isSelectedForTimeline 
+                          ? 'bg-green-600 hover:bg-green-700 text-white' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {isSelectedForTimeline ? 'Added to Timeline' : 'Add to Timeline'}
+                    </Button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{file.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {file.size ? formatFileSize(file.size) : 'Unknown size'}
-                    </p>
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
