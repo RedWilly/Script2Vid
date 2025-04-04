@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Howl } from 'howler';
-import { SceneWithDuration, MIN_SCENE_DURATION, DEFAULT_SCENE_DURATION, VoiceOverFile } from './types';
+import { SceneWithDuration, MIN_SCENE_DURATION, DEFAULT_SCENE_DURATION, VoiceOverFile, CaptionSegment, CaptionFile } from './types';
 
 interface StoryboardContextType {
   // Scene state
@@ -26,6 +26,11 @@ interface StoryboardContextType {
   setVoiceOver: React.Dispatch<React.SetStateAction<VoiceOverFile | null>>;
   isVoiceOverPlaying: boolean;
   isVoiceOverLoaded: boolean;
+  
+  // Caption state
+  activeCaption: CaptionFile | null;
+  setActiveCaption: React.Dispatch<React.SetStateAction<CaptionFile | null>>;
+  currentCaptionText: string;
   
   // Trim state
   isTrimming: boolean;
@@ -72,6 +77,9 @@ interface StoryboardContextType {
   handleAddVoiceOver: (voiceOverFile: VoiceOverFile) => void;
   handlePlayVoiceOver: () => void;
   handlePauseVoiceOver: () => void;
+  
+  // Caption methods
+  handleSetCaptionSegments: (segments: CaptionSegment[]) => void;
 }
 
 const StoryboardContext = createContext<StoryboardContextType | undefined>(undefined);
@@ -104,6 +112,11 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const [isVoiceOverPlaying, setIsVoiceOverPlaying] = useState(false);
   const [isVoiceOverLoaded, setIsVoiceOverLoaded] = useState(false);
   const voiceOverRef = useRef<Howl | null>(null);
+  
+  // Caption state
+  const [activeCaption, setActiveCaption] = useState<CaptionFile | null>(null);
+  const [captionSegments, setCaptionSegments] = useState<CaptionSegment[]>([]);
+  const [currentCaptionText, setCurrentCaptionText] = useState('');
   
   // Trim state
   const [isDraggingLeftTrim, setIsDraggingLeftTrim] = useState(false);
@@ -626,10 +639,19 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     setIsVoiceOverLoaded(false);
     setIsVoiceOverPlaying(false);
     
+    // Set the voice-over
     setVoiceOver(voiceOverFile);
+    
+    // Update total duration to ensure it's at least as long as the voice-over
+    // This ensures the full audio is included in the timeline
+    if (voiceOverFile.duration > totalDuration) {
+      console.log(`Voice-over duration (${voiceOverFile.duration}s) is longer than current timeline (${totalDuration}s). Adjusting timeline duration.`);
+      setTotalDuration(voiceOverFile.duration);
+    }
+    
     toast.success(`Voice-over "${voiceOverFile.name}" added to timeline`);
-  }, []);
-  
+  }, [totalDuration, setTotalDuration]);
+
   // Handle playing voice-over
   const handlePlayVoiceOver = useCallback(() => {
     if (isVoiceOverLoaded && voiceOverRef.current && !voiceOverRef.current.playing()) {
@@ -637,13 +659,36 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       voiceOverRef.current.play();
     }
   }, [isVoiceOverLoaded]);
-  
+
   // Handle pausing voice-over
   const handlePauseVoiceOver = useCallback(() => {
     if (voiceOverRef.current && voiceOverRef.current.playing()) {
       console.log('Pausing voice-over');
       voiceOverRef.current.pause();
     }
+  }, []);
+
+  // Update current caption text based on current time
+  useEffect(() => {
+    if (!captionSegments.length || !isPlaying) {
+      setCurrentCaptionText('');
+      return;
+    }
+
+    // Find the caption segment that corresponds to the current time
+    const activeSegment = captionSegments.find(
+      segment => currentTime >= segment.startTime && currentTime <= segment.endTime
+    );
+
+    // Update the current caption text
+    setCurrentCaptionText(activeSegment ? activeSegment.text : '');
+    
+  }, [currentTime, captionSegments, isPlaying]);
+
+  // Set caption segments when active caption changes
+  const handleSetCaptionSegments = useCallback((segments: CaptionSegment[]) => {
+    setCaptionSegments(segments);
+    console.log('Caption segments set:', segments);
   }, []);
 
   // Playback timer logic
@@ -739,6 +784,11 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     isVoiceOverPlaying,
     isVoiceOverLoaded,
     
+    // Caption state
+    activeCaption,
+    setActiveCaption,
+    currentCaptionText,
+    
     // Trim state
     isTrimming,
     trimmingSceneIndex,
@@ -784,6 +834,9 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     handleAddVoiceOver,
     handlePlayVoiceOver,
     handlePauseVoiceOver,
+    
+    // Caption methods
+    handleSetCaptionSegments,
   };
 
   return (

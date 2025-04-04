@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useStoryboard } from './StoryboardContext';
 
 export const ScenePreview = () => {
-  const { scenes, selectedSceneIndex } = useStoryboard();
+  const { scenes, selectedSceneIndex, currentCaptionText, isPlaying } = useStoryboard();
   const [isLoading, setIsLoading] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const imageCache = useRef<Map<string, boolean>>(new Map());
@@ -92,6 +92,13 @@ export const ScenePreview = () => {
       {currentSceneForPreview && selectedSceneIndex !== null && (
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white pointer-events-none">
           <span className="font-semibold drop-shadow-md">Scene {selectedSceneIndex + 1}</span>
+        </div>
+      )}
+      
+      {/* Caption display */}
+      {isPlaying && currentCaptionText && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black/80 py-3 px-4 text-center">
+          <p className="text-white text-lg font-medium drop-shadow-md">{currentCaptionText}</p>
         </div>
       )}
     </div>

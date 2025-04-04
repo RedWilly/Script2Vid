@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStoryboard } from './StoryboardContext';
 import { Button } from "@/components/ui/button";
 import { formatDuration } from './types';
@@ -30,7 +30,8 @@ export const TimelineRuler = () => {
     handleSceneSelect,
     handleDeleteScene,
     voiceOver,
-    isVoiceOverPlaying,
+    currentCaptionText,
+    currentTime
   } = useStoryboard();
   
   // Handle playhead mouse down event
@@ -260,7 +261,7 @@ export const TimelineRuler = () => {
             <div className="flex h-10 w-full bg-[#1a1f2c]/30 border-t border-[#1a1f2c]/50 relative">
               {voiceOver ? (
                 <div 
-                  className={`h-full w-full flex items-center px-3 ${isVoiceOverPlaying ? 'bg-blue-500/20' : 'bg-blue-500/10'}`}
+                  className={`h-full w-full flex items-center px-3 ${isPlaying ? 'bg-blue-500/20' : 'bg-blue-500/10'}`}
                 >
                   <div className="flex items-center space-x-2">
                     {/* Voice-over Icon */}
@@ -286,7 +287,7 @@ export const TimelineRuler = () => {
             <div 
               ref={playheadRef} 
               className="absolute top-0 bottom-0 w-0.5 bg-purple-500 cursor-ew-resize z-30 group" 
-              style={{ left: '0%', height: 'calc(100% - 0px)' }} 
+              style={{ left: `${(currentTime / totalDuration) * 100}%`, height: 'calc(100% - 0px)' }} 
               onMouseDown={handlePlayheadMouseDown} 
               onClick={(e) => e.stopPropagation()}
             >

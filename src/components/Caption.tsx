@@ -3,17 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useStoryboard } from './storyboard/StoryboardContext';
-
-interface CaptionFile {
-  name: string;
-  url: string;
-}
+import { parseVTT, syncSceneDurations } from '@/utils/vttParser';
+import { CaptionFile } from './storyboard/types';
 
 const Caption: React.FC = () => {
   const [captions, setCaptions] = useState<CaptionFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { voiceOver } = useStoryboard();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { 
+    voiceOver, 
+    scenes, 
+    setScenes, 
+    setActiveCaption,
+    handleSetCaptionSegments
+  } = useStoryboard();
 
   // Load existing captions
   useEffect(() => {
@@ -80,6 +84,56 @@ const Caption: React.FC = () => {
     }
   };
 
+  const handleSyncCaption = async (caption: CaptionFile) => {
+    if (!scenes || scenes.length === 0) {
+      toast.error('No scenes available to sync with');
+      return;
+    }
+
+    try {
+      setIsSyncing(true);
+      toast.loading(`Syncing caption "${caption.name}" with scenes...`);
+
+      // Fetch the VTT file content
+      const response = await fetch(caption.url);
+      const vttContent = await response.text();
+
+      // Parse the VTT content
+      const captionSegments = parseVTT(vttContent);
+      
+      if (captionSegments.length === 0) {
+        toast.error('No caption segments found in the VTT file');
+        return;
+      }
+
+      console.log('Parsed caption segments:', captionSegments);
+
+      // Synchronize scene durations with caption timing
+      const updatedScenes = syncSceneDurations([...scenes], captionSegments);
+      
+      // Update scenes with new durations
+      setScenes(updatedScenes);
+
+      // Store caption segments in context for display during playback
+      handleSetCaptionSegments(captionSegments);
+      
+      // Set this caption as the active caption
+      setActiveCaption({
+        ...caption,
+        segments: captionSegments
+      });
+      
+      toast.success(`Caption "${caption.name}" synced with scenes successfully`);
+      console.log('Updated scenes with synced durations:', updatedScenes);
+      
+    } catch (error) {
+      console.error('Error syncing caption with scenes:', error);
+      toast.error('Failed to sync caption with scenes');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <button
@@ -120,9 +174,9 @@ const Caption: React.FC = () => {
                   className="text-purple-400 hover:text-purple-300"
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Will implement sync functionality later
-                    console.log('Sync button clicked for caption:', caption.name);
+                    handleSyncCaption(caption);
                   }}
+                  disabled={isSyncing}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />

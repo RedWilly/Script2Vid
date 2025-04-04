@@ -3,16 +3,33 @@ import { Scene } from "@/types";
 // Extend the base Scene type with required duration
 export interface SceneWithDuration extends Scene {
   id: string;
+  content: string;
+  prompt: string;
+  imageUrl: string;
+  seed: number;
+  imageGenerated: boolean;
   duration: number;
 }
 
 // Voice-over file interface
 export interface VoiceOverFile {
-  id: string;
   name: string;
   url: string;
   duration: number;
-  voiceId: string;
+}
+
+// Caption segment interface
+export interface CaptionSegment {
+  startTime: number;
+  endTime: number;
+  text: string;
+}
+
+// Caption file interface
+export interface CaptionFile {
+  name: string;
+  url: string;
+  segments?: CaptionSegment[];
 }
 
 // Constants
