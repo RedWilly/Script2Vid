@@ -34,18 +34,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate VTT subtitles
-    console.log('Generating VTT subtitles for transcript:', transcript.id);
-    const vtt = await client.transcripts.subtitles(transcript.id, 'vtt', 40);
+    // Generate SRT subtitles
+    console.log('Generating SRT subtitles for transcript:', transcript.id);
+    const srt = await client.transcripts.subtitles(transcript.id, 'srt', 40);
     
-    // Upload VTT file to S3
-    const fileName = `caption-${Date.now()}.vtt`;
-    const vttBuffer = Buffer.from(vtt);
-    const vttUrl = await uploadCaptionFile(vttBuffer, fileName, 'text/vtt');
+    // Upload SRT file to S3
+    const fileName = `caption-${Date.now()}.srt`;
+    const srtBuffer = Buffer.from(srt);
+    const srtUrl = await uploadCaptionFile(srtBuffer, fileName, 'text/plain');
 
     return NextResponse.json({
       success: true,
-      captionUrl: vttUrl,
+      captionUrl: srtUrl,
       captionName: fileName,
       transcriptId: transcript.id
     });

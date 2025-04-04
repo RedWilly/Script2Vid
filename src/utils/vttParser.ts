@@ -1,9 +1,79 @@
 import { SceneWithDuration, CaptionSegment } from '@/components/storyboard/types';
 
 /**
- * Parse a VTT file content into an array of caption segments
+ * Parse a VTT or SRT file content into an array of caption segments
  */
 export function parseVTT(vttContent: string): CaptionSegment[] {
+  // Detect if this is an SRT file (starts with a number) or VTT file (starts with WEBVTT)
+  const isSRT = !vttContent.trim().startsWith('WEBVTT');
+  
+  if (isSRT) {
+    return parseSRT(vttContent);
+  } else {
+    return parseVTTFormat(vttContent);
+  }
+}
+
+/**
+ * Parse an SRT file content into an array of caption segments
+ */
+function parseSRT(srtContent: string): CaptionSegment[] {
+  const lines = srtContent.trim().split('\n');
+  const segments: CaptionSegment[] = [];
+  
+  let i = 0;
+  while (i < lines.length) {
+    // Skip empty lines
+    if (lines[i].trim() === '') {
+      i++;
+      continue;
+    }
+    
+    // Skip the index number
+    if (/^\d+$/.test(lines[i].trim())) {
+      i++;
+      
+      // Next line should be the timing
+      if (i < lines.length && lines[i].includes('-->')) {
+        const timingLine = lines[i];
+        const textLines: string[] = [];
+        
+        // Move to the text lines
+        i++;
+        
+        // Collect all text lines until we hit an empty line or the end
+        while (i < lines.length && lines[i].trim() !== '') {
+          textLines.push(lines[i]);
+          i++;
+        }
+        
+        // Parse the timing information
+        const [startTimeStr, endTimeStr] = timingLine.split('-->').map(t => t.trim());
+        
+        // Convert timestamp to seconds
+        const startTime = timestampToSeconds(startTimeStr);
+        const endTime = timestampToSeconds(endTimeStr);
+        
+        // Add the segment
+        segments.push({
+          startTime,
+          endTime,
+          text: textLines.join(' ').trim()
+        });
+      }
+    } else {
+      // If not a number, move to the next line
+      i++;
+    }
+  }
+  
+  return segments;
+}
+
+/**
+ * Parse a VTT file content into an array of caption segments
+ */
+function parseVTTFormat(vttContent: string): CaptionSegment[] {
   const lines = vttContent.trim().split('\n');
   const segments: CaptionSegment[] = [];
   
@@ -55,28 +125,32 @@ export function parseVTT(vttContent: string): CaptionSegment[] {
 }
 
 /**
- * Convert a VTT timestamp (00:00.000 or 00:00:00.000) to seconds
+ * Convert a timestamp (00:00.000, 00:00:00.000, or 00:00:00,000) to seconds
+ * Handles both VTT and SRT formats
  */
 export function timestampToSeconds(timestamp: string): number {
+  // Replace comma with period for SRT format
+  const normalizedTimestamp = timestamp.replace(',', '.');
+  
   let parts: string[];
   let hours = 0;
   let minutes = 0;
   let seconds = 0;
   
-  if (timestamp.includes(':')) {
-    parts = timestamp.split(':');
+  if (normalizedTimestamp.includes(':')) {
+    parts = normalizedTimestamp.split(':');
     if (parts.length === 3) {
       // Format: 00:00:00.000
       hours = parseInt(parts[0], 10);
       minutes = parseInt(parts[1], 10);
-      seconds = parseFloat(parts[2].replace(',', '.'));
+      seconds = parseFloat(parts[2]);
     } else if (parts.length === 2) {
       // Format: 00:00.000
       minutes = parseInt(parts[0], 10);
-      seconds = parseFloat(parts[1].replace(',', '.'));
+      seconds = parseFloat(parts[1]);
     }
   } else {
-    seconds = parseFloat(timestamp.replace(',', '.'));
+    seconds = parseFloat(normalizedTimestamp);
   }
   
   return hours * 3600 + minutes * 60 + seconds;
@@ -102,8 +176,8 @@ function calculateSimilarity(str1: string, str2: string): number {
 }
 
 /**
- * Calculate the overlap fraction between a scene’s text and a caption’s text.
- * It returns the fraction of the caption’s words that are found in the scene’s text.
+ * Calculate the overlap fraction between a scene's text and a caption's text.
+ * It returns the fraction of the caption's words that are found in the scene's text.
  */
 function calculateOverlapFraction(sceneText: string, captionText: string): number {
   const sceneWords = sceneText.toLowerCase().split(/\s+/);
