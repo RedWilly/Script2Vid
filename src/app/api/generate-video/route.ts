@@ -17,6 +17,19 @@ interface Scene {
   seed?: number;
 }
 
+// Interface for the request payload
+interface VideoExportRequest {
+  scenes: Scene[];
+  voiceOver?: {
+    url: string;
+    name: string;
+  };
+  captionFile?: {
+    url: string;
+    name: string;
+  };
+}
+
 // Ensure temp directory exists
 const ensureTempDir = async () => {
   // Use OS temp directory instead of a local folder for better cross-platform support
@@ -39,7 +52,7 @@ export async function POST(request: NextRequest) {
     await mkdir(outputDir, { recursive: true });
     
     // Parse the request body
-    const { scenes } = await request.json() as { scenes: Scene[] };
+    const { scenes, voiceOver, captionFile } = await request.json() as VideoExportRequest;
     
     if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
       return NextResponse.json(
@@ -120,20 +133,53 @@ export async function POST(request: NextRequest) {
     // Create output video file path
     const outputVideoPath = path.join(outputDir, 'storyboard_video.mp4');
     
+    // Download voice-over file if provided
+    let audioPath: string | null = null;
+    if (voiceOver && voiceOver.url) {
+      try {
+        console.log(`Downloading voice-over audio: ${voiceOver.name}`);
+        const audioResponse = await fetch(voiceOver.url);
+        if (!audioResponse.ok) {
+          console.error('Failed to download voice-over audio');
+        } else {
+          const audioBuffer = await audioResponse.arrayBuffer();
+          audioPath = path.join(outputDir, 'voiceover.mp3');
+          await writeFile(audioPath, Buffer.from(audioBuffer));
+          console.log('Voice-over audio downloaded successfully');
+        }
+      } catch (error) {
+        console.error('Error processing voice-over audio:', error);
+        audioPath = null;
+      }
+    }
+    
     // Generate video using fluent-ffmpeg with concat demuxer
     return new Promise<NextResponse>((resolve, reject) => {
-      ffmpeg()
+      let ffmpegCommand = ffmpeg()
         .input(listFilePath)
-        .inputOptions(['-f', 'concat', '-safe', '0'])
-        .outputOptions([
-          '-c:v', 'libx264',
-          '-pix_fmt', 'yuv420p',
-          '-preset', 'medium',
-          '-crf', '23',
-          '-movflags', '+faststart',
-          // Add verbose logging to see what FFmpeg is doing
-          '-loglevel', 'verbose'
-        ])
+        .inputOptions(['-f', 'concat', '-safe', '0']);
+      
+      // Add audio track if available
+      if (audioPath) {
+        ffmpegCommand = ffmpegCommand
+          .input(audioPath)
+          .audioCodec('aac')
+          .audioChannels(2)
+          .audioFrequency(44100)
+          .audioQuality(5);
+      }
+      
+      // Configure output options
+      const outputOptions = [
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        '-preset', 'medium',
+        '-crf', '23',
+        '-movflags', '+faststart'
+      ];
+      
+      ffmpegCommand
+        .outputOptions(outputOptions)
         .output(outputVideoPath)
         .on('start', (commandLine) => {
           console.log('FFmpeg command:', commandLine);
@@ -165,7 +211,6 @@ export async function POST(request: NextRequest) {
                 console.error('Error cleaning up temp files:', e);
               }
             }, 60000); // Clean up after 1 minute
-            
           } catch (error) {
             console.error('Error reading video file:', error);
             reject(error);

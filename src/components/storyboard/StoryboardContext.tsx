@@ -358,12 +358,27 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       // Create a toast ID to reference the loading toast later
       const toastId = toast.loading("Generating video...");
 
+      // Prepare request payload with scenes, voice-over, and captions
+      const requestPayload = {
+        scenes,
+        // Include voice-over if available
+        voiceOver: voiceOver ? {
+          url: voiceOver.url,
+          name: voiceOver.name
+        } : undefined,
+        // Include active caption file if available
+        captionFile: activeCaption ? {
+          url: activeCaption.url,
+          name: activeCaption.name
+        } : undefined
+      };
+
       const response = await fetch('/api/generate-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ scenes }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
@@ -389,7 +404,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       
       // Dismiss the loading toast and show the success toast
       toast.dismiss(toastId);
-      toast.success("Video exported successfully!");
+      toast.success(`Video exported successfully${voiceOver ? ' with audio' : ''}${activeCaption ? ' and captions' : ''}!`);
     } catch (error) {
       console.error('Error exporting video:', error);
       // Dismiss any existing toasts before showing the error
@@ -398,7 +413,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     } finally {
       setIsExporting(false);
     }
-  }, [scenes]);
+  }, [scenes, voiceOver, activeCaption]);
 
   // Update time display whenever current time changes
   useEffect(() => {
