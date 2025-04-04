@@ -12,7 +12,6 @@ export const TimelineRuler = () => {
     playheadRef,
     timelineRowRef,
     totalDuration,
-    currentTime,
     scenes,
     selectedSceneIndex,
     getSceneStartTime,
@@ -29,36 +28,10 @@ export const TimelineRuler = () => {
     handleAddScene,
     handleSceneClick,
     handleSceneSelect,
-    handleDeleteScene
+    handleDeleteScene,
   } = useStoryboard();
   
-  // Reference for the playhead extension in the thumbnails area
-  const playheadExtensionRef = useRef<HTMLDivElement>(null);
-
-  // Sync the playhead extension with the main playhead
-  useEffect(() => {
-    if (playheadRef.current && playheadExtensionRef.current) {
-      playheadExtensionRef.current.style.left = playheadRef.current.style.left;
-    }
-  }, [currentTime, totalDuration]);
-
-  const handleTimelineRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!timelineRulerRef.current || totalDuration <= 0 || isDraggingLeftTrim || isDraggingRightTrim) return; // Prevent seek while trimming
-
-    const rect = timelineRulerRef.current.getBoundingClientRect();
-    const clickPosition = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(clickPosition / rect.width, 1));
-    const newTime = percentage * totalDuration;
-
-    setCurrentTime(newTime);
-    setIsPlaying(false); // Stop playback on seek
-
-    const sceneIndex = getSceneIndexAtTime(newTime, scenes, totalDuration);
-    if (sceneIndex !== null && sceneIndex !== selectedSceneIndex) {
-      setSelectedSceneIndex(sceneIndex);
-    }
-  };
-
+  // Handle playhead mouse down event
   const handlePlayheadMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -96,6 +69,23 @@ export const TimelineRuler = () => {
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleTimelineRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!timelineRulerRef.current || totalDuration <= 0 || isDraggingLeftTrim || isDraggingRightTrim) return; // Prevent seek while trimming
+
+    const rect = timelineRulerRef.current.getBoundingClientRect();
+    const clickPosition = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(clickPosition / rect.width, 1));
+    const newTime = percentage * totalDuration;
+
+    setCurrentTime(newTime);
+    setIsPlaying(false); // Stop playback on seek
+
+    const sceneIndex = getSceneIndexAtTime(newTime, scenes, totalDuration);
+    if (sceneIndex !== null && sceneIndex !== selectedSceneIndex) {
+      setSelectedSceneIndex(sceneIndex);
+    }
   };
 
   return (
@@ -155,17 +145,6 @@ export const TimelineRuler = () => {
                     </div>
                   );
                 })}
-              </div>
-              
-              {/* Playhead */}
-              <div 
-                ref={playheadRef} 
-                className="absolute top-0 bottom-0 w-0.5 bg-purple-500 cursor-ew-resize z-30 group" 
-                style={{ left: '0%' }} 
-                onMouseDown={handlePlayheadMouseDown} 
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="absolute -top-[4px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-500 transform transition-transform group-hover:scale-110"></div>
               </div>
               
               {/* Scene duration indicators */}
@@ -274,12 +253,17 @@ export const TimelineRuler = () => {
             </div>
           </div>
           
-          {/* Playhead Line Extension */}
+          {/* Single Continuous Playhead that spans the entire timeline height */}
           <div 
-            ref={playheadExtensionRef}
-            className="absolute top-8 bottom-0 w-0.5 bg-purple-500 z-20 pointer-events-none" 
-            style={{ left: '0%' }}
-          />
+            ref={playheadRef} 
+            className="absolute top-0 bottom-0 w-0.5 bg-purple-500 cursor-ew-resize z-30 group" 
+            style={{ left: '0%' }} 
+            onMouseDown={handlePlayheadMouseDown} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Playhead triangle at the top */}
+            <div className="absolute -top-[4px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-500 transform transition-transform group-hover:scale-110"></div>
+          </div>
         </div>
       </div>
     </div>

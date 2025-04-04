@@ -37,11 +37,6 @@ export const TimelineControls = () => {
       <div className="text-xs text-gray-300 font-mono bg-[#1a1f2c] px-2 py-1 rounded flex-shrink-0">
         {currentTimeDisplay} / {formatDuration(totalDuration)}
       </div>
-
-      {/* Additional Time Display (for larger screens)
-      <div className="flex-shrink-0 text-sm text-gray-400 font-mono ml-auto hidden md:block">
-        {formatDisplayTime(currentTime)} / {formatDisplayTime(totalDuration)}
-      </div> */}
     </div>
   );
 };
