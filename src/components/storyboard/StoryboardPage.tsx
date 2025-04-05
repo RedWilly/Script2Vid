@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/Sidebar";
 import { StoryboardProvider, useStoryboard } from './StoryboardContext';
-import ScenePreview from './ScenePreview';
 import TimelineRuler from './TimelineRuler';
 import VideoExport from './VideoExport';
+import { RemotionTimeline } from './RemotionTimeline';
 
 // Inner component that uses the context
 const StoryboardContent = () => {
@@ -48,8 +48,10 @@ const StoryboardContent = () => {
           </header>
           {/* Main content area */}
           <main className="flex-grow flex flex-col p-4 sm:p-6 gap-4 sm:gap-6">
-            {/* Preview Area */}
-            <ScenePreview />
+            {/* Preview Area - Now using Remotion */}
+            <div className="bg-black border border-[#1a1f2c]/50 rounded-xl p-3 sm:p-4 shadow-xl">
+              <RemotionTimeline />
+            </div>
 
             {/* Timeline Section - Consolidated */}
             <div className="flex-shrink-0 bg-black border border-[#1a1f2c]/50 rounded-xl p-3 sm:p-4 shadow-xl">

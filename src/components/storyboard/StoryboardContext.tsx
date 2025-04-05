@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Howl } from 'howler';
 import { SceneWithDuration, MIN_SCENE_DURATION, DEFAULT_SCENE_DURATION, VoiceOverFile, CaptionSegment, CaptionFile } from './types';
 
 interface StoryboardContextType {
@@ -111,7 +110,6 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const [voiceOver, setVoiceOver] = useState<VoiceOverFile | null>(null);
   const [isVoiceOverPlaying, setIsVoiceOverPlaying] = useState(false);
   const [isVoiceOverLoaded, setIsVoiceOverLoaded] = useState(false);
-  const voiceOverRef = useRef<Howl | null>(null);
   
   // Caption state
   const [activeCaption, setActiveCaption] = useState<CaptionFile | null>(null);
@@ -348,72 +346,65 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
 
   // Handle video export
   const handleExportVideo = useCallback(async () => {
-    if (scenes.length === 0) {
-      toast.error("No scenes to export");
-      return;
-    }
-
     try {
       setIsExporting(true);
-      // Create a toast ID to reference the loading toast later
-      const toastId = toast.loading("Generating video...");
-
-      // Prepare request payload with scenes, voice-over, and captions
-      const requestPayload = {
-        scenes,
-        // Include voice-over if available
-        voiceOver: voiceOver ? {
-          url: voiceOver.url,
-          name: voiceOver.name
-        } : undefined,
-        // Include active caption file if available
-        captionFile: activeCaption ? {
-          url: activeCaption.url,
-          name: activeCaption.name
-        } : undefined
+      
+      // Get scenes data
+      const scenesData = scenes.map(scene => ({
+        imageUrl: scene.imageUrl,
+        duration: scene.duration
+      }));
+      
+      // Get voice-over data if available
+      const voiceOverData = voiceOver ? {
+        url: voiceOver.url,
+        name: voiceOver.name
+      } : undefined;
+      
+      // Prepare request data
+      const requestData = {
+        scenes: scenesData,
+        voiceOver: voiceOverData
       };
-
+      
+      // Make API request to generate video
       const response = await fetch('/api/generate-video', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify(requestData)
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate video');
-      }
-
-      // Create a blob from the response
-      const blob = await response.blob();
       
-      // Create a download link and trigger download
-      const url = window.URL.createObjectURL(blob);
+      if (!response.ok) {
+        throw new Error(`Failed to generate video: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get video blob
+      const videoBlob = await response.blob();
+      
+      // Create download link
+      const url = URL.createObjectURL(videoBlob);
       const a = document.createElement('a');
-      a.style.display = 'none';
       a.href = url;
       a.download = 'storyboard_video.mp4';
       document.body.appendChild(a);
       a.click();
       
       // Clean up
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
       
-      // Dismiss the loading toast and show the success toast
-      toast.dismiss(toastId);
-      toast.success(`Video exported successfully${voiceOver ? ' with audio' : ''}${activeCaption ? ' and captions' : ''}!`);
+      toast.success('Video exported successfully!');
     } catch (error) {
       console.error('Error exporting video:', error);
-      // Dismiss any existing toasts before showing the error
-      toast.dismiss();
-      toast.error(error instanceof Error ? error.message : 'Failed to export video');
+      toast.error('Failed to export video. Please try again.');
     } finally {
       setIsExporting(false);
     }
-  }, [scenes, voiceOver, activeCaption]);
+  }, [scenes, voiceOver]);
 
   // Update time display whenever current time changes
   useEffect(() => {
@@ -543,145 +534,60 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       });
   };
 
-  // Load voice-over audio using Howler.js
-  useEffect(() => {
-    if (!voiceOver) return;
-    
-    // Reset state
-    setIsVoiceOverLoaded(false);
-    setIsVoiceOverPlaying(false);
-    
-    // Destroy previous Howl instance if it exists
-    if (voiceOverRef.current) {
-      voiceOverRef.current.unload();
-      voiceOverRef.current = null;
-    }
-    
-    // Show loading indicator
-    const loadingToastId = toast.loading('Loading voice-over audio...');
-    
-    // Create new Howl instance
-    const sound = new Howl({
-      src: [voiceOver.url],
-      html5: true, // Use HTML5 Audio for better streaming support
-      preload: true, // Preload the audio
-      format: ['mp3', 'wav'], // Supported formats
-      onload: () => {
-        console.log('Voice-over loaded successfully');
-        setIsVoiceOverLoaded(true);
-        toast.dismiss(loadingToastId);
-        toast.success('Voice-over loaded successfully');
-      },
-      onloaderror: (id, error) => {
-        console.error('Error loading voice-over:', error);
-        toast.dismiss(loadingToastId);
-        toast.error('Failed to load voice-over audio');
-      },
-      onplay: () => {
-        console.log('Voice-over started playing');
-        setIsVoiceOverPlaying(true);
-      },
-      onpause: () => {
-        console.log('Voice-over paused');
-        setIsVoiceOverPlaying(false);
-      },
-      onstop: () => {
-        console.log('Voice-over stopped');
-        setIsVoiceOverPlaying(false);
-      },
-      onend: () => {
-        console.log('Voice-over playback ended');
-        setIsVoiceOverPlaying(false);
-      }
-    });
-    
-    voiceOverRef.current = sound;
-    
-  }, [voiceOver]);
-
-  // Handle voice-over playback state changes
-  useEffect(() => {
-    if (!voiceOverRef.current || !isVoiceOverLoaded) return;
-    
-    if (isPlaying) {
-      console.log('Timeline is playing, starting voice-over');
-      
-      // Get current position of the voice-over
-      const currentSoundPosition = voiceOverRef.current.seek() as number;
-      
-      // If we need to seek to a different position (more than 0.1s difference)
-      if (Math.abs(currentTime - currentSoundPosition) > 0.1) {
-        console.log(`Seeking voice-over to ${currentTime}s`);
-        voiceOverRef.current.seek(currentTime);
-      }
-      
-      // Play if not already playing
-      if (!voiceOverRef.current.playing()) {
-        voiceOverRef.current.play();
-      }
-    } else {
-      // Pause voice-over when timeline is paused
-      if (voiceOverRef.current.playing()) {
-        console.log('Pausing voice-over');
-        voiceOverRef.current.pause();
-      }
-    }
-  }, [isPlaying, currentTime, isVoiceOverLoaded]);
-
-  // Update voice-over position when timeline position changes
-  useEffect(() => {
-    if (!voiceOverRef.current || !isVoiceOverLoaded || !isPlaying) return;
-    
-    // If the time has changed significantly (e.g., seeking), update voice-over position
-    const currentSoundPosition = voiceOverRef.current.seek() as number;
-    if (Math.abs(currentTime - currentSoundPosition) > 0.1) {
-      console.log(`Seeking voice-over to ${currentTime}s`);
-      voiceOverRef.current.seek(currentTime);
-    }
-  }, [currentTime, isVoiceOverLoaded, isPlaying]);
-
-  // Handle adding a voice-over to the timeline
+  // Handle adding voice-over
   const handleAddVoiceOver = useCallback((voiceOverFile: VoiceOverFile) => {
-    console.log('Adding voice-over to timeline:', voiceOverFile.name);
-    
-    // Reset audio state when changing voice-over
-    if (voiceOverRef.current) {
-      voiceOverRef.current.stop();
-      voiceOverRef.current.unload();
-      voiceOverRef.current = null;
-    }
-    
-    setIsVoiceOverLoaded(false);
-    setIsVoiceOverPlaying(false);
-    
-    // Set the voice-over
     setVoiceOver(voiceOverFile);
+    setIsVoiceOverLoaded(true); // Assume it's loaded since Remotion will handle loading
     
     // Update total duration to ensure it's at least as long as the voice-over
-    // This ensures the full audio is included in the timeline
     if (voiceOverFile.duration > totalDuration) {
       console.log(`Voice-over duration (${voiceOverFile.duration}s) is longer than current timeline (${totalDuration}s). Adjusting timeline duration.`);
       setTotalDuration(voiceOverFile.duration);
+      
+      // If we have captions, make sure they're properly synced with the new duration
+      if (activeCaption && activeCaption.segments) {
+        const lastSegmentEnd = activeCaption.segments.reduce((max, segment) => {
+          return Math.max(max, segment.endTime);
+        }, 0);
+        
+        // If captions end before voice-over, adjust the timeline display
+        if (lastSegmentEnd < voiceOverFile.duration) {
+          console.log(`Captions end at ${lastSegmentEnd}s but voice-over is ${voiceOverFile.duration}s. Timeline will show full voice-over duration.`);
+        }
+      }
     }
     
-    toast.success(`Voice-over "${voiceOverFile.name}" added to timeline`);
-  }, [totalDuration, setTotalDuration]);
+    // Ensure scenes cover at least the voice-over duration
+    const totalScenesDuration = scenes.reduce((total, scene) => total + scene.duration, 0);
+    if (totalScenesDuration < voiceOverFile.duration) {
+      console.log(`Total scenes duration (${totalScenesDuration}s) is less than voice-over (${voiceOverFile.duration}s). Consider adding more scenes or extending existing ones.`);
+      toast.info(`Voice-over is longer than your scenes. Consider adding more scenes or extending durations.`);
+    }
+    
+    toast.success('Voice-over added successfully');
+  }, [totalDuration, setTotalDuration, scenes, activeCaption]);
 
-  // Handle playing voice-over
+  // Play/pause voice-over is now handled by Remotion
   const handlePlayVoiceOver = useCallback(() => {
-    if (isVoiceOverLoaded && voiceOverRef.current && !voiceOverRef.current.playing()) {
-      console.log('Playing voice-over');
-      voiceOverRef.current.play();
+    // Voice-over playback is now synchronized with the Remotion player
+    // Just update the state to reflect that it's playing
+    setIsVoiceOverPlaying(true);
+    
+    // Start playback from the beginning if not already playing
+    if (!isPlaying) {
+      setIsPlaying(true);
     }
-  }, [isVoiceOverLoaded]);
+  }, [isPlaying]);
 
-  // Handle pausing voice-over
   const handlePauseVoiceOver = useCallback(() => {
-    if (voiceOverRef.current && voiceOverRef.current.playing()) {
-      console.log('Pausing voice-over');
-      voiceOverRef.current.pause();
+    // Voice-over pause is now synchronized with the Remotion player
+    setIsVoiceOverPlaying(false);
+    
+    // Pause the entire playback
+    if (isPlaying) {
+      setIsPlaying(false);
     }
-  }, []);
+  }, [isPlaying]);
 
   // Update current caption text based on current time
   useEffect(() => {
@@ -769,10 +675,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      // Clean up voice-over
-      if (voiceOverRef.current) {
-        voiceOverRef.current.unload();
-      }
+      // No need to clean up Howler instances
     };
   }, []);
 

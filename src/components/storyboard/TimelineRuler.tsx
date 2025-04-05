@@ -25,7 +25,6 @@ export const TimelineRuler = () => {
     isPlaying,
     handlePlayPause,
     currentTimeDisplay,
-    handleAddScene,
     handleSceneClick,
     handleSceneSelect,
     handleDeleteScene,
@@ -248,17 +247,6 @@ export const TimelineRuler = () => {
                       </div>
                     );
                   })}
-                  
-                  {/* Add Scene Button - Always at the end */}
-                  <div 
-                    className="relative h-full min-w-[80px] w-20 border-l border-[#1a1f2c]/50 flex-shrink-0 flex items-center justify-center cursor-pointer group hover:bg-[#1a1f2c]/30 transition-colors"
-                    onClick={handleAddScene}
-                  >
-                    <div className="flex flex-col items-center justify-center">
-                      <span className="text-3xl font-light text-gray-500 group-hover:text-purple-400 transition-colors">+</span>
-                      <span className="text-xs text-gray-400 group-hover:text-gray-300">Add Scene</span>
-                    </div>
-                  </div>
                 </div>
                 
                 {/* Voice-over Track */}

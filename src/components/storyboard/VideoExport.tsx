@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useStoryboard } from './StoryboardContext';
 
 export function VideoExport() {
-  const { handleExportVideo, isExporting, scenes } = useStoryboard();
+  const { handleExportVideo, isExporting, scenes, voiceOver } = useStoryboard();
 
   const handleExport = async () => {
     try {

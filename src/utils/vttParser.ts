@@ -221,6 +221,7 @@ export function findMatchingSceneIndex(
  * This function assumes that both the scenes and the caption segments are in order.
  * For each scene, it accumulates the durations of as many consecutive caption segments as needed
  * until it has roughly covered the number of words in the scene's content.
+ * It also ensures that the total duration of all scenes matches the total duration of all caption segments.
  */
 export function syncSceneDurations(
   scenes: SceneWithDuration[],
@@ -229,11 +230,21 @@ export function syncSceneDurations(
   // Create a deep copy of scenes to avoid mutating the original
   const updatedScenes = JSON.parse(JSON.stringify(scenes)) as SceneWithDuration[];
 
+  // If no caption segments, return the original scenes
+  if (captionSegments.length === 0) {
+    return updatedScenes;
+  }
+
+  // Calculate the total voice-over duration
+  const totalVoiceOverDuration = captionSegments.length > 0 
+    ? captionSegments[captionSegments.length - 1].endTime 
+    : 0;
+
   // A pointer for the caption segments
   let captionIndex = 0;
 
   // For each scene, accumulate caption durations until we match the scene's text length (in words)
-  updatedScenes.forEach((scene) => {
+  updatedScenes.forEach((scene, sceneIndex) => {
     const sceneWords = scene.content.split(/\s+/).filter((w) => w.length > 0);
     const sceneWordCount = sceneWords.length;
     let accumulatedWordCount = 0;
@@ -251,6 +262,26 @@ export function syncSceneDurations(
     // Ensure a minimum duration of 1 second, if needed.
     scene.duration = Math.max(accumulatedDuration, 1);
   });
+
+  // Calculate the total duration of all scenes after initial assignment
+  const totalSceneDuration = updatedScenes.reduce((total, scene) => total + scene.duration, 0);
+
+  // Check if there's remaining voice-over time not covered by scenes
+  if (totalVoiceOverDuration > totalSceneDuration) {
+    const remainingDuration = totalVoiceOverDuration - totalSceneDuration;
+    console.log(`Remaining voice-over duration not covered by scenes: ${remainingDuration.toFixed(2)}s`);
+
+    // Distribute the remaining duration to the last scene
+    if (updatedScenes.length > 0) {
+      const lastScene = updatedScenes[updatedScenes.length - 1];
+      lastScene.duration += remainingDuration;
+      console.log(`Extended last scene duration to cover full voice-over: ${lastScene.duration.toFixed(2)}s`);
+    }
+  }
+
+  // Log the total durations for debugging
+  console.log(`Total voice-over duration: ${totalVoiceOverDuration.toFixed(2)}s`);
+  console.log(`Total scene duration after adjustment: ${updatedScenes.reduce((total, scene) => total + scene.duration, 0).toFixed(2)}s`);
 
   return updatedScenes;
 }

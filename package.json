@@ -13,6 +13,8 @@
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
+    "@remotion/cli": "^4.0.286",
+    "@remotion/player": "^4.0.286",
     "@types/howler": "^2.2.12",
     "@types/uuid": "^10.0.0",
     "assemblyai": "^4.9.0",

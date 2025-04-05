@@ -36,11 +36,13 @@ export async function POST(request: NextRequest) {
 
     // Generate SRT subtitles
     console.log('Generating SRT subtitles for transcript:', transcript.id);
-    const srt = await client.transcripts.subtitles(transcript.id, 'srt', 40);
+    // const srt = await client.transcripts.subtitles(transcript.id, 'srt', 40);
+    const vtt = await client.transcripts.subtitles(transcript.id, 'vtt', 40);
+
     
     // Upload SRT file to S3
-    const fileName = `caption-${Date.now()}.srt`;
-    const srtBuffer = Buffer.from(srt);
+    const fileName = `caption-${Date.now()}.vtt`;
+    const srtBuffer = Buffer.from(vtt);
     const srtUrl = await uploadCaptionFile(srtBuffer, fileName, 'text/plain');
 
     return NextResponse.json({

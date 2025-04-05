@@ -110,6 +110,7 @@ const Caption: React.FC = () => {
 
       // Synchronize scene durations with caption timing
       const updatedScenes = syncSceneDurations([...scenes], captionSegments);
+      console.log('Updated scenes with synced durations:', updatedScenes);
       
       // Update scenes with new durations
       setScenes(updatedScenes);
