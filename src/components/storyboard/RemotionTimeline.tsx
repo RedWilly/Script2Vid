@@ -103,39 +103,42 @@ export const RemotionTimeline: React.FC = () => {
   
   if (scenes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-100 rounded-md">
+      <div className="flex items-center justify-center h-48 bg-gray-100 rounded-md">
         <p className="text-gray-500">Add scenes to preview your storyboard</p>
       </div>
     );
   }
   
   return (
-    <div className="w-full bg-black rounded-md overflow-hidden relative">
-      <Player
-        ref={playerRef}
-        component={StoryboardComposition as React.ComponentType<any>}
-        inputProps={{
-          scenes,
-          voiceOverUrl: voiceOver?.url,
-          fps
-        }}
-        durationInFrames={totalFrames || 30}
-        fps={fps}
-        compositionWidth={1024}
-        compositionHeight={576}
-        style={{
-          width: '100%',
-          aspectRatio: '16/9',
-        }}
-        controls={false} // Hide Remotion controls
-        loop
-        clickToPlay={false} // Disable click to play
-        renderLoading={() => (
-          <div className="flex items-center justify-center h-full bg-black text-white">
-            <div className="animate-pulse">Loading preview...</div>
-          </div>
-        )}
-      />
+    <div className="w-full flex flex-col items-center bg-black rounded-md overflow-hidden relative">
+      {/* Container with max width and centered */}
+      <div className="w-full max-w-3xl mx-auto">
+        <Player
+          ref={playerRef}
+          component={StoryboardComposition as React.ComponentType<any>}
+          inputProps={{
+            scenes,
+            voiceOverUrl: voiceOver?.url,
+            fps
+          }}
+          durationInFrames={totalFrames || 30}
+          fps={fps}
+          compositionWidth={1024}
+          compositionHeight={576}
+          style={{
+            width: '100%',
+            aspectRatio: '16/9',
+          }}
+          controls={false} // Hide Remotion controls
+          loop
+          clickToPlay={false} // Disable click to play
+          renderLoading={() => (
+            <div className="flex items-center justify-center h-full bg-black text-white">
+              <div className="animate-pulse">Loading preview...</div>
+            </div>
+          )}
+        />
+      </div>
       
       {/* Custom play button overlay that uses the storyboard's play/pause function */}
       <div 
