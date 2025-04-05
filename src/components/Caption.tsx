@@ -108,8 +108,18 @@ const Caption: React.FC = () => {
 
       console.log('Parsed caption segments:', captionSegments);
 
+      // Log for debugging
+      console.log('Voice-over duration:', voiceOver?.duration);
+      console.log('Caption segments:', captionSegments);
+      console.log('Last caption segment end time:', 
+        captionSegments.length > 0 ? captionSegments[captionSegments.length - 1].endTime : 'N/A');
+
       // Synchronize scene durations with caption timing
-      const updatedScenes = syncSceneDurations([...scenes], captionSegments);
+      const updatedScenes = syncSceneDurations(
+        [...scenes], 
+        captionSegments,
+        voiceOver?.duration
+      );
       console.log('Updated scenes with synced durations:', updatedScenes);
       
       // Update scenes with new durations

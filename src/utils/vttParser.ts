@@ -225,7 +225,8 @@ export function findMatchingSceneIndex(
  */
 export function syncSceneDurations(
   scenes: SceneWithDuration[],
-  captionSegments: CaptionSegment[]
+  captionSegments: CaptionSegment[],
+  voiceOverDuration?: number // Add optional parameter for total voice-over duration
 ): SceneWithDuration[] {
   // Create a deep copy of scenes to avoid mutating the original
   const updatedScenes = JSON.parse(JSON.stringify(scenes)) as SceneWithDuration[];
@@ -235,31 +236,43 @@ export function syncSceneDurations(
     return updatedScenes;
   }
 
-  // Calculate the total voice-over duration
-  const totalVoiceOverDuration = captionSegments.length > 0 
+  // Calculate the total voice-over duration from captions
+  const captionEndTime = captionSegments.length > 0 
     ? captionSegments[captionSegments.length - 1].endTime 
     : 0;
+  
+  // Use the provided voiceOverDuration if available, otherwise use caption end time
+  const totalVoiceOverDuration = voiceOverDuration || captionEndTime;
+  
+  console.log(`Total voice-over duration from parameter: ${voiceOverDuration || 'not provided'}`);
+  console.log(`Caption end time: ${captionEndTime}`);
+  console.log(`Using voice-over duration: ${totalVoiceOverDuration}`);
 
   // A pointer for the caption segments
   let captionIndex = 0;
 
-  // For each scene, accumulate caption durations until we match the scene's text length (in words)
+  // For each scene, find the corresponding caption segments
   updatedScenes.forEach((scene, sceneIndex) => {
     const sceneWords = scene.content.split(/\s+/).filter((w) => w.length > 0);
     const sceneWordCount = sceneWords.length;
     let accumulatedWordCount = 0;
     let accumulatedDuration = 0;
-
-    // Accumulate contiguous caption segments that contribute to this scene.
-    while (captionIndex < captionSegments.length && accumulatedWordCount < sceneWordCount) {
+    
+    const startCaptionIndex = captionIndex;
+    
+    // Find caption segments that correspond to this scene
+    while (
+      captionIndex < captionSegments.length && 
+      accumulatedWordCount < sceneWordCount
+    ) {
       const segment = captionSegments[captionIndex];
       const segmentWords = segment.text.split(/\s+/).filter((w) => w.length > 0);
       accumulatedWordCount += segmentWords.length;
       accumulatedDuration += segment.endTime - segment.startTime;
       captionIndex++;
     }
-
-    // Ensure a minimum duration of 1 second, if needed.
+    
+    // Ensure minimum duration
     scene.duration = Math.max(accumulatedDuration, 1);
   });
 
