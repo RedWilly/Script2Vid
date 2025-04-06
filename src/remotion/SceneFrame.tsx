@@ -2,15 +2,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { AbsoluteFill } from 'remotion';
-import { SceneWithDuration } from '../components/storyboard/types';
+import { SceneWithDuration, CaptionSegment } from '../components/storyboard/types';
+import { CaptionOverlay } from './CaptionOverlay';
 
 interface SceneFrameProps {
   scene: SceneWithDuration;
   width: number;
   height: number;
+  sceneStartTime: number;
+  captionSegments?: CaptionSegment[];
 }
 
-export const SceneFrame: React.FC<SceneFrameProps> = ({ scene, width, height }) => {
+export const SceneFrame: React.FC<SceneFrameProps> = ({ 
+  scene, 
+  width, 
+  height,
+  sceneStartTime,
+  captionSegments = []
+}) => {
   // Track image loading state
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -82,24 +91,13 @@ export const SceneFrame: React.FC<SceneFrameProps> = ({ scene, width, height }) 
         }}
       />
       
-      {/* Scene content overlay */}
-      {scene.content && imageLoaded && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 20,
-            left: 20,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: 'white',
-            padding: '8px 12px',
-            borderRadius: 4,
-            fontSize: 16,
-            fontWeight: 'bold',
-            maxWidth: '80%',
-          }}
-        >
-          {scene.content.substring(0, 50)}{scene.content.length > 50 ? '...' : ''}
-        </div>
+      {/* Caption overlay */}
+      {captionSegments.length > 0 && imageLoaded && (
+        <CaptionOverlay 
+          captionSegments={captionSegments}
+          sceneStartTime={sceneStartTime}
+          sceneDuration={scene.duration}
+        />
       )}
     </AbsoluteFill>
   );

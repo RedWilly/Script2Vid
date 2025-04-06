@@ -18,11 +18,19 @@ export interface VoiceOverFile {
   duration: number;
 }
 
+// Word segment interface for word-level timestamps
+export interface WordSegment {
+  startTime: number;
+  endTime: number;
+  word: string;
+}
+
 // Caption segment interface
 export interface CaptionSegment {
   startTime: number;
   endTime: number;
   text: string;
+  words?: WordSegment[]; // Optional array of word-level timestamps
 }
 
 // Caption file interface

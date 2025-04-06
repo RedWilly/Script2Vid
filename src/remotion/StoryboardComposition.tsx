@@ -2,18 +2,20 @@
 
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
-import { SceneWithDuration } from '../components/storyboard/types';
+import { SceneWithDuration, CaptionSegment } from '../components/storyboard/types';
 import { SceneFrame } from './SceneFrame';
 
 export interface StoryboardCompositionProps {
   scenes: SceneWithDuration[];
   voiceOverUrl?: string;
+  captionSegments?: CaptionSegment[];
   fps: number;
 }
 
 export const StoryboardComposition: React.FC<StoryboardCompositionProps> = ({
   scenes,
   voiceOverUrl,
+  captionSegments = [],
   fps = 30,
 }) => {
   const frame = useCurrentFrame();
@@ -36,6 +38,7 @@ export const StoryboardComposition: React.FC<StoryboardCompositionProps> = ({
         scene,
         startFrame: currentOffset,
         endFrame: offset - 1,
+        startTime: currentOffset / fps, // Add start time in seconds
       };
     });
   };
@@ -45,13 +48,19 @@ export const StoryboardComposition: React.FC<StoryboardCompositionProps> = ({
   return (
     <AbsoluteFill style={{ backgroundColor: 'black' }}>
       {/* Render each scene as a sequence */}
-      {sceneOffsets.map(({ scene, startFrame, endFrame }) => (
+      {sceneOffsets.map(({ scene, startFrame, endFrame, startTime }) => (
         <Sequence
           key={scene.id}
           from={startFrame}
           durationInFrames={endFrame - startFrame + 1}
         >
-          <SceneFrame scene={scene} width={width} height={height} />
+          <SceneFrame 
+            scene={scene} 
+            width={width} 
+            height={height} 
+            sceneStartTime={startTime}
+            captionSegments={captionSegments}
+          />
         </Sequence>
       ))}
       

@@ -48,7 +48,8 @@ export const RemotionTimeline: React.FC = () => {
     isPlaying,
     setIsPlaying,
     voiceOver,
-    handlePlayPause
+    handlePlayPause,
+    activeCaption
   } = useStoryboard();
   
   const playerRef = useRef<PlayerRef>(null);
@@ -101,6 +102,22 @@ export const RemotionTimeline: React.FC = () => {
     };
   }, [playerRef, fps, currentTime, setCurrentTime]);
   
+  // Load the Caveat font for captions
+  useEffect(() => {
+    // Create a link element for the Google Font
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap';
+    link.rel = 'stylesheet';
+    
+    // Append to the document head
+    document.head.appendChild(link);
+    
+    // Clean up
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+  
   if (scenes.length === 0) {
     return (
       <div className="flex items-center justify-center h-48 bg-gray-100 rounded-md">
@@ -119,6 +136,7 @@ export const RemotionTimeline: React.FC = () => {
           inputProps={{
             scenes,
             voiceOverUrl: voiceOver?.url,
+            captionSegments: activeCaption?.segments || [],
             fps
           }}
           durationInFrames={totalFrames || 30}

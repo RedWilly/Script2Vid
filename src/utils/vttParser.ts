@@ -1,4 +1,4 @@
-import { SceneWithDuration, CaptionSegment } from '@/components/storyboard/types';
+import { SceneWithDuration, CaptionSegment, WordSegment } from '@/components/storyboard/types';
 
 /**
  * Parse a VTT or SRT file content into an array of caption segments
@@ -10,7 +10,25 @@ export function parseVTT(vttContent: string): CaptionSegment[] {
   if (isSRT) {
     return parseSRT(vttContent);
   } else {
-    return parseVTTFormat(vttContent);
+    // Check if this is a word-level VTT (each word has its own timestamp)
+    const lines = vttContent.trim().split('\n');
+    const hasWordLevelTimestamps = lines.some(line => {
+      if (line.includes('-->')) {
+        // Check the next line - if it's just a single word, it's likely word-level
+        const lineIndex = lines.indexOf(line);
+        if (lineIndex < lines.length - 1) {
+          const nextLine = lines[lineIndex + 1].trim();
+          return nextLine.split(/\s+/).length === 1;
+        }
+      }
+      return false;
+    });
+    
+    if (hasWordLevelTimestamps) {
+      return parseWordLevelVTT(vttContent);
+    } else {
+      return parseVTTFormat(vttContent);
+    }
   }
 }
 
@@ -125,6 +143,85 @@ function parseVTTFormat(vttContent: string): CaptionSegment[] {
 }
 
 /**
+ * Parse a word-level VTT file content into an array of caption segments
+ * This handles the AssemblyAI word-level timestamp format where each word has its own timing
+ */
+function parseWordLevelVTT(vttContent: string): CaptionSegment[] {
+  const lines = vttContent.trim().split('\n');
+  const wordSegments: WordSegment[] = [];
+  
+  // Skip the WEBVTT header
+  let i = 0;
+  while (i < lines.length && !lines[i].includes('-->')) {
+    i++;
+  }
+  
+  // Parse each word segment
+  while (i < lines.length) {
+    // Find the timing line (contains -->)
+    if (lines[i].includes('-->')) {
+      const timingLine = lines[i];
+      
+      // Next line should be the word
+      i++;
+      if (i < lines.length && lines[i].trim() !== '') {
+        const word = lines[i].trim();
+        
+        // Parse the timing information
+        const [startTimeStr, endTimeStr] = timingLine.split('-->').map(t => t.trim());
+        
+        // Convert timestamp to seconds
+        const startTime = timestampToSeconds(startTimeStr);
+        const endTime = timestampToSeconds(endTimeStr);
+        
+        // Add the word segment
+        wordSegments.push({
+          startTime,
+          endTime,
+          word
+        });
+      }
+      
+      // Skip to the next segment
+      i++;
+      while (i < lines.length && lines[i].trim() === '') {
+        i++;
+      }
+    } else {
+      // Skip non-timing lines
+      i++;
+    }
+  }
+  
+  // If no word segments were found, return an empty array
+  if (wordSegments.length === 0) {
+    return [];
+  }
+  
+  // Group words into sentences/phrases (approximately 10-15 words per segment)
+  // This helps maintain proper scene synchronization
+  const captionSegments: CaptionSegment[] = [];
+  const WORDS_PER_SEGMENT = 12; // Adjust this value to control segment size
+  
+  for (let i = 0; i < wordSegments.length; i += WORDS_PER_SEGMENT) {
+    const segmentWords = wordSegments.slice(i, i + WORDS_PER_SEGMENT);
+    if (segmentWords.length > 0) {
+      const firstWord = segmentWords[0];
+      const lastWord = segmentWords[segmentWords.length - 1];
+      
+      captionSegments.push({
+        startTime: firstWord.startTime,
+        endTime: lastWord.endTime,
+        text: segmentWords.map(ws => ws.word).join(' '),
+        words: segmentWords
+      });
+    }
+  }
+  
+  return captionSegments;
+}
+
+/**
  * Convert a timestamp (00:00.000, 00:00:00.000, or 00:00:00,000) to seconds
  * Handles both VTT and SRT formats
  */
@@ -150,6 +247,7 @@ export function timestampToSeconds(timestamp: string): number {
       seconds = parseFloat(parts[1]);
     }
   } else {
+    // Format: 00.000
     seconds = parseFloat(normalizedTimestamp);
   }
   
@@ -161,36 +259,31 @@ export function timestampToSeconds(timestamp: string): number {
  * Returns a score between 0 and 1, where 1 is a perfect match.
  * This version counts all words.
  */
-function calculateSimilarity(str1: string, str2: string): number {
-  const words1 = str1.split(/\s+/);
-  const words2 = str2.split(/\s+/);
+export function calculateSimilarity(str1: string, str2: string): number {
+  const words1 = str1.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const words2 = str2.toLowerCase().split(/\s+/).filter(w => w.length > 0);
   
-  let matchCount = 0;
-  for (const word of words1) {
-    if (words2.includes(word)) {
-      matchCount++;
-    }
-  }
+  // Count words that appear in both strings
+  const commonWords = words1.filter(word => words2.includes(word));
   
-  return matchCount / Math.max(words1.length, 1);
+  // Calculate similarity as the ratio of common words to total unique words
+  const uniqueWords = new Set([...words1, ...words2]);
+  return commonWords.length / uniqueWords.size;
 }
 
 /**
  * Calculate the overlap fraction between a scene's text and a caption's text.
  * It returns the fraction of the caption's words that are found in the scene's text.
  */
-function calculateOverlapFraction(sceneText: string, captionText: string): number {
-  const sceneWords = sceneText.toLowerCase().split(/\s+/);
-  const captionWords = captionText.toLowerCase().split(/\s+/);
+export function calculateOverlapFraction(sceneText: string, captionText: string): number {
+  const sceneWords = new Set(sceneText.toLowerCase().split(/\s+/).filter(w => w.length > 0));
+  const captionWords = captionText.toLowerCase().split(/\s+/).filter(w => w.length > 0);
   
-  let matchCount = 0;
-  captionWords.forEach(word => {
-    if (sceneWords.includes(word)) {
-      matchCount++;
-    }
-  });
+  // Count caption words that appear in the scene
+  const commonWords = captionWords.filter(word => sceneWords.has(word));
   
-  return matchCount / Math.max(captionWords.length, 1);
+  // Calculate the fraction of caption words that are in the scene
+  return captionWords.length > 0 ? commonWords.length / captionWords.length : 0;
 }
 
 /**
@@ -301,4 +394,4 @@ export function syncSceneDurations(
 
 
 // Re-export CaptionSegment for convenience
-export type { CaptionSegment };
+export type { CaptionSegment, WordSegment };
