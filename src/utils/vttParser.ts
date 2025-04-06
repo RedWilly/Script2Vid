@@ -198,10 +198,10 @@ function parseWordLevelVTT(vttContent: string): CaptionSegment[] {
     return [];
   }
   
-  // Group words into sentences/phrases (approximately 10-15 words per segment)
+  // Group words into sentences/phrases (approximately 5-15 words per segment)
   // This helps maintain proper scene synchronization
   const captionSegments: CaptionSegment[] = [];
-  const WORDS_PER_SEGMENT = 12; // Adjust this value to control segment size
+  const WORDS_PER_SEGMENT = 5; // Adjust this value to control segment size
   
   for (let i = 0; i < wordSegments.length; i += WORDS_PER_SEGMENT) {
     const segmentWords = wordSegments.slice(i, i + WORDS_PER_SEGMENT);
