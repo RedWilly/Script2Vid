@@ -1,0 +1,257 @@
+{
+    "overlays": [
+      {
+        "left": -10,
+        "top": 9,
+        "width": 1096,
+        "height": 1950,
+        "durationInFrames": 68,
+        "from": 1,
+        "id": 0,
+        "rotation": 0,
+        "row": 2,
+        "isDragging": false,
+        "type": "clip",
+        "content": "https://images.pexels.com/videos/5803095/cycling-dirt-bike-drone-engine-5803095.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+        "src": "https://videos.pexels.com/video-files/5803095/5803095-uhd_2560_1440_25fps.mp4",
+        "videoStartTime": 0,
+        "styles": {
+          "opacity": 1,
+          "zIndex": 100,
+          "transform": "none",
+          "objectFit": "cover",
+          "borderRadius": "35px"
+        }
+      },
+      {
+        "left": -3,
+        "top": 120,
+        "width": 2558,
+        "height": 1741,
+        "durationInFrames": 67,
+        "from": 69,
+        "id": 1,
+        "rotation": 0,
+        "row": 3,
+        "isDragging": false,
+        "type": "clip",
+        "content": "https://images.pexels.com/videos/2040076/free-video-2040076.jpg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+        "src": "https://videos.pexels.com/video-files/2040076/2040076-hd_1920_1080_24fps.mp4",
+        "videoStartTime": 132,
+        "styles": {
+          "opacity": 1,
+          "zIndex": 100,
+          "transform": "none",
+          "objectFit": "cover",
+          "animation": {
+            "exit": "fade",
+            "enter": "fade"
+          }
+        }
+      },
+      {
+        "left": 82,
+        "top": 37,
+        "width": 1068,
+        "height": 266,
+        "durationInFrames": 98,
+        "from": 3,
+        "id": 2,
+        "row": 4,
+        "rotation": 0,
+        "isDragging": false,
+        "type": "text",
+        "content": "GREAT",
+        "styles": {
+          "fontSize": "3rem",
+          "fontWeight": "900",
+          "color": "#FFFFFF",
+          "backgroundColor": "transparent",
+          "fontFamily": "font-sans",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "lineHeight": "1",
+          "textAlign": "center",
+          "letterSpacing": "0.02em",
+          "textShadow": "2px 2px 0px rgba(0, 0, 0, 0.2)",
+          "opacity": 1,
+          "zIndex": 1,
+          "transform": "none",
+          "animation": {
+            "enter": "fade",
+            "exit": "fade"
+          }
+        }
+      },
+      {
+        "left": 64,
+        "top": 46,
+        "width": 816,
+        "height": 310,
+        "durationInFrames": 102,
+        "from": 26,
+        "id": 6,
+        "row": 1,
+        "rotation": 0,
+        "isDragging": false,
+        "type": "text",
+        "content": "remotion \nlocal \nrender example",
+        "styles": {
+          "fontSize": "3rem",
+          "fontWeight": "900",
+          "color": "#e90101",
+          "backgroundColor": "#00ff04",
+          "fontFamily": "font-sans",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "lineHeight": "1",
+          "textAlign": "center",
+          "letterSpacing": "0.02em",
+          "textShadow": "2px 2px 0px rgba(0, 0, 0, 0.2)",
+          "opacity": 1,
+          "zIndex": 1,
+          "transform": "none",
+          "animation": {
+            "enter": "slideRight",
+            "exit": "fade"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "caption",
+        "from": 0,
+        "durationInFrames": 116,
+        "captions": [
+          {
+            "text": "This video was generated locally",
+            "startMs": 0,
+            "endMs": 3375,
+            "timestampMs": null,
+            "confidence": 0.99,
+            "words": [
+              {
+                "word": "This",
+                "startMs": 0,
+                "endMs": 675,
+                "confidence": 1
+              },
+              {
+                "word": "video",
+                "startMs": 675,
+                "endMs": 1350,
+                "confidence": 1
+              },
+              {
+                "word": "was",
+                "startMs": 1350,
+                "endMs": 2025,
+                "confidence": 1
+              },
+              {
+                "word": "generated",
+                "startMs": 2025,
+                "endMs": 2700,
+                "confidence": 1
+              },
+              {
+                "word": "locally",
+                "startMs": 2700,
+                "endMs": 3375,
+                "confidence": 1
+              }
+            ]
+          },
+          {
+            "text": "The perfect template for creating video editing apps",
+            "startMs": 3875,
+            "endMs": 6875,
+            "timestampMs": null,
+            "confidence": 0.99,
+            "words": [
+              {
+                "word": "The",
+                "startMs": 3875,
+                "endMs": 4250,
+                "confidence": 0.99
+              },
+              {
+                "word": "perfect",
+                "startMs": 4250,
+                "endMs": 4625,
+                "confidence": 0.99
+              },
+              {
+                "word": "template",
+                "startMs": 4625,
+                "endMs": 5000,
+                "confidence": 0.99
+              },
+              {
+                "word": "for",
+                "startMs": 5000,
+                "endMs": 5375,
+                "confidence": 0.99
+              },
+              {
+                "word": "creating",
+                "startMs": 5375,
+                "endMs": 5750,
+                "confidence": 0.99
+              },
+              {
+                "word": "video",
+                "startMs": 5750,
+                "endMs": 6125,
+                "confidence": 0.99
+              },
+              {
+                "word": "editing",
+                "startMs": 6125,
+                "endMs": 6500,
+                "confidence": 0.99
+              },
+              {
+                "word": "apps",
+                "startMs": 6500,
+                "endMs": 6875,
+                "confidence": 0.99
+              }
+            ]
+          }
+        ],
+        "left": 240,
+        "top": 454,
+        "width": 746,
+        "height": 188,
+        "rotation": 0,
+        "isDragging": false,
+        "row": 0,
+        "template": "classic",
+        "styles": {
+          "fontFamily": "Inter, sans-serif",
+          "fontSize": "2.2rem",
+          "lineHeight": 1.4,
+          "textAlign": "center",
+          "color": "#FFFFFF",
+          "textShadow": "2px 2px 4px rgba(0,0,0,0.6), 0 0 20px rgba(0,0,0,0.3)",
+          "padding": "12px",
+          "fontWeight": 500,
+          "letterSpacing": "0.01em",
+          "highlightStyle": {
+            "backgroundColor": "rgba(59, 130, 246, 0.92)",
+            "color": "#FFFFFF",
+            "scale": 1.06,
+            "fontWeight": 600,
+            "textShadow": "2px 2px 4px rgba(0,0,0,0.4)",
+            "borderRadius": "6px",
+            "padding": "2px 8px"
+          }
+        }
+      }
+    ],
+    "durationInFrames": 136,
+    "fps": 30,
+    "width": 1080,
+    "height": 1920
+  }
