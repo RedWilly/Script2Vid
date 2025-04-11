@@ -82,13 +82,19 @@ export const TimelineVideo: React.FC<{ timeline: Timeline }> = ({ timeline }) =>
       {timeline.overlays
         ?.filter((overlay) => overlay.type === 'caption')
         .map((overlay) => {
-          // Merge minimal required defaults with overlay.styles for captions
           const style: React.CSSProperties = {
             position: 'absolute',
             bottom: 50,
             left: 0,
             width: '100%',
             textAlign: 'center',
+            padding: '10px',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            color: 'white',
+            fontSize: 36,
+            fontWeight: 'bold',
+            textShadow: '2px 2px 4px black',
+            zIndex: 9999,
             ...overlay.styles,
           };
 
@@ -126,31 +132,9 @@ function TimedCaption({
   if (active.length === 0) return null;
   return (
     <div style={style}>
-      {active.map((cap: any, idx: number) => {
-        // Highlight the currently spoken word if highlightStyle is present and words are present
-        const highlightStyle =
-          (style && (style as any).highlightStyle) ||
-          (cap.highlightStyle ? cap.highlightStyle : undefined);
-
-        if (cap.words && cap.words.length > 0 && highlightStyle) {
-          const wordSpans = cap.words.map((word: any, widx: number) => {
-            // Determine if this word should be highlighted
-            const isActive =
-              currentMs >= word.startMs && currentMs < word.endMs;
-            return (
-              <span
-                key={widx}
-                style={isActive ? highlightStyle : undefined}
-              >
-                {word.word + " "}
-              </span>
-            );
-          });
-          return <div key={idx}>{wordSpans}</div>;
-        }
-        // Otherwise, just render the text
-        return <div key={idx}>{cap.text}</div>;
-      })}
+      {active.map((cap: any, idx: number) => (
+        <div key={idx}>{cap.text}</div>
+      ))}
     </div>
   );
 }
