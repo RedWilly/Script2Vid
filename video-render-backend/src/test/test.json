@@ -1,257 +1,1060 @@
 {
-    "overlays": [
-      {
-        "left": -10,
-        "top": 9,
-        "width": 1096,
-        "height": 1950,
-        "durationInFrames": 68,
-        "from": 1,
-        "id": 0,
-        "rotation": 0,
-        "row": 2,
-        "isDragging": false,
-        "type": "clip",
-        "content": "https://images.pexels.com/videos/5803095/cycling-dirt-bike-drone-engine-5803095.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
-        "src": "https://videos.pexels.com/video-files/5803095/5803095-uhd_2560_1440_25fps.mp4",
-        "videoStartTime": 0,
-        "styles": {
-          "opacity": 1,
-          "zIndex": 100,
-          "transform": "none",
-          "objectFit": "cover",
-          "borderRadius": "35px"
-        }
-      },
-      {
-        "left": -3,
-        "top": 120,
-        "width": 2558,
-        "height": 1741,
-        "durationInFrames": 67,
-        "from": 69,
-        "id": 1,
-        "rotation": 0,
-        "row": 3,
-        "isDragging": false,
-        "type": "clip",
-        "content": "https://images.pexels.com/videos/2040076/free-video-2040076.jpg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
-        "src": "https://videos.pexels.com/video-files/2040076/2040076-hd_1920_1080_24fps.mp4",
-        "videoStartTime": 132,
-        "styles": {
-          "opacity": 1,
-          "zIndex": 100,
-          "transform": "none",
-          "objectFit": "cover",
-          "animation": {
-            "exit": "fade",
-            "enter": "fade"
-          }
-        }
-      },
-      {
-        "left": 82,
-        "top": 37,
-        "width": 1068,
-        "height": 266,
-        "durationInFrames": 98,
-        "from": 3,
-        "id": 2,
-        "row": 4,
-        "rotation": 0,
-        "isDragging": false,
-        "type": "text",
-        "content": "GREAT",
-        "styles": {
-          "fontSize": "3rem",
-          "fontWeight": "900",
-          "color": "#FFFFFF",
-          "backgroundColor": "transparent",
-          "fontFamily": "font-sans",
-          "fontStyle": "normal",
-          "textDecoration": "none",
-          "lineHeight": "1",
-          "textAlign": "center",
-          "letterSpacing": "0.02em",
-          "textShadow": "2px 2px 0px rgba(0, 0, 0, 0.2)",
-          "opacity": 1,
-          "zIndex": 1,
-          "transform": "none",
-          "animation": {
-            "enter": "fade",
-            "exit": "fade"
-          }
-        }
-      },
-      {
-        "left": 64,
-        "top": 46,
-        "width": 816,
-        "height": 310,
-        "durationInFrames": 102,
-        "from": 26,
-        "id": 6,
-        "row": 1,
-        "rotation": 0,
-        "isDragging": false,
-        "type": "text",
-        "content": "remotion \nlocal \nrender example",
-        "styles": {
-          "fontSize": "3rem",
-          "fontWeight": "900",
-          "color": "#e90101",
-          "backgroundColor": "#00ff04",
-          "fontFamily": "font-sans",
-          "fontStyle": "normal",
-          "textDecoration": "none",
-          "lineHeight": "1",
-          "textAlign": "center",
-          "letterSpacing": "0.02em",
-          "textShadow": "2px 2px 0px rgba(0, 0, 0, 0.2)",
-          "opacity": 1,
-          "zIndex": 1,
-          "transform": "none",
-          "animation": {
-            "enter": "slideRight",
-            "exit": "fade"
-          }
-        }
-      },
-      {
-        "id": 7,
-        "type": "caption",
-        "from": 0,
-        "durationInFrames": 116,
-        "captions": [
-          {
-            "text": "This video was generated locally",
-            "startMs": 0,
-            "endMs": 3375,
-            "timestampMs": null,
-            "confidence": 0.99,
-            "words": [
-              {
-                "word": "This",
-                "startMs": 0,
-                "endMs": 675,
-                "confidence": 1
-              },
-              {
-                "word": "video",
-                "startMs": 675,
-                "endMs": 1350,
-                "confidence": 1
-              },
-              {
-                "word": "was",
-                "startMs": 1350,
-                "endMs": 2025,
-                "confidence": 1
-              },
-              {
-                "word": "generated",
-                "startMs": 2025,
-                "endMs": 2700,
-                "confidence": 1
-              },
-              {
-                "word": "locally",
-                "startMs": 2700,
-                "endMs": 3375,
-                "confidence": 1
-              }
-            ]
-          },
-          {
-            "text": "The perfect template for creating video editing apps",
-            "startMs": 3875,
-            "endMs": 6875,
-            "timestampMs": null,
-            "confidence": 0.99,
-            "words": [
-              {
-                "word": "The",
-                "startMs": 3875,
-                "endMs": 4250,
-                "confidence": 0.99
-              },
-              {
-                "word": "perfect",
-                "startMs": 4250,
-                "endMs": 4625,
-                "confidence": 0.99
-              },
-              {
-                "word": "template",
-                "startMs": 4625,
-                "endMs": 5000,
-                "confidence": 0.99
-              },
-              {
-                "word": "for",
-                "startMs": 5000,
-                "endMs": 5375,
-                "confidence": 0.99
-              },
-              {
-                "word": "creating",
-                "startMs": 5375,
-                "endMs": 5750,
-                "confidence": 0.99
-              },
-              {
-                "word": "video",
-                "startMs": 5750,
-                "endMs": 6125,
-                "confidence": 0.99
-              },
-              {
-                "word": "editing",
-                "startMs": 6125,
-                "endMs": 6500,
-                "confidence": 0.99
-              },
-              {
-                "word": "apps",
-                "startMs": 6500,
-                "endMs": 6875,
-                "confidence": 0.99
-              }
-            ]
-          }
-        ],
-        "left": 240,
-        "top": 454,
-        "width": 746,
-        "height": 188,
-        "rotation": 0,
-        "isDragging": false,
-        "row": 0,
-        "template": "classic",
-        "styles": {
-          "fontFamily": "Inter, sans-serif",
-          "fontSize": "2.2rem",
-          "lineHeight": 1.4,
-          "textAlign": "center",
-          "color": "#FFFFFF",
-          "textShadow": "2px 2px 4px rgba(0,0,0,0.6), 0 0 20px rgba(0,0,0,0.3)",
-          "padding": "12px",
-          "fontWeight": 500,
-          "letterSpacing": "0.01em",
-          "highlightStyle": {
-            "backgroundColor": "rgba(59, 130, 246, 0.92)",
-            "color": "#FFFFFF",
-            "scale": 1.06,
-            "fontWeight": 600,
-            "textShadow": "2px 2px 4px rgba(0,0,0,0.4)",
-            "borderRadius": "6px",
-            "padding": "2px 8px"
-          }
-        }
+  "overlays": [
+    {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "durationInFrames": 187,
+      "from": 0,
+      "id": 0,
+      "rotation": 0,
+      "row": 0,
+      "isDragging": false,
+      "type": "image",
+      "src": "https://v3.fal.media/files/tiger/eeAGfPcV1qdTdpr4sXABf.png",
+      "videoStartTime": 0,
+      "styles": {
+        "opacity": 1,
+        "zIndex": 100,
+        "transform": "none",
+        "objectFit": "cover",
+        "borderRadius": "0px"
       }
-    ],
-    "durationInFrames": 136,
-    "fps": 30,
-    "width": 1080,
-    "height": 1920
-  }
+    },
+    {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "durationInFrames": 240,
+      "from": 187,
+      "id": 1,
+      "rotation": 0,
+      "row": 0,
+      "isDragging": false,
+      "type": "image",
+      "src": "https://v3.fal.media/files/lion/-8HgLRVtZ3yyDjBBSvGH-.png",
+      "videoStartTime": 0,
+      "styles": {
+        "opacity": 1,
+        "zIndex": 100,
+        "transform": "none",
+        "objectFit": "cover",
+        "borderRadius": "0px"
+      }
+    },
+    {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "durationInFrames": 343,
+      "from": 427,
+      "id": 2,
+      "rotation": 0,
+      "row": 0,
+      "isDragging": false,
+      "type": "image",
+      "src": "https://v3.fal.media/files/elephant/JYvYrWd4OJdabWh0V4Bc0.png",
+      "videoStartTime": 0,
+      "styles": {
+        "opacity": 1,
+        "zIndex": 100,
+        "transform": "none",
+        "objectFit": "cover",
+        "borderRadius": "0px"
+      }
+    },
+    {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "durationInFrames": 245,
+      "from": 770,
+      "id": 3,
+      "rotation": 0,
+      "row": 0,
+      "isDragging": false,
+      "type": "image",
+      "src": "https://v3.fal.media/files/tiger/1EctddfBxqWPCmvz_tCi5.png",
+      "videoStartTime": 0,
+      "styles": {
+        "opacity": 1,
+        "zIndex": 100,
+        "transform": "none",
+        "objectFit": "cover",
+        "borderRadius": "0px"
+      }
+    },
+    {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 1080,
+      "durationInFrames": 418,
+      "from": 1015,
+      "id": 4,
+      "rotation": 0,
+      "row": 0,
+      "isDragging": false,
+      "type": "image",
+      "src": "https://v3.fal.media/files/panda/C5sb3OMlksmzB4hHVXcXR.png",
+      "videoStartTime": 0,
+      "styles": {
+        "opacity": 1,
+        "zIndex": 100,
+        "transform": "none",
+        "objectFit": "cover",
+        "borderRadius": "0px"
+      }
+    },
+    {
+      "id": 5,
+      "type": "voiceover",
+      "from": 0,
+      "durationInFrames": 1432,
+      "src": "https://minio.rooni.site/voiceover/1743947322888-OA004-d452e2e0.mp3",
+      "content": "1743947322888-OA004-d452e2e0.mp3",
+      "styles": {},
+      "isDragging": false,
+      "rotation": 0,
+      "row": 0,
+      "left": 0,
+      "top": 0,
+      "width": 0,
+      "height": 0,
+      "videoStartTime": 0
+    },
+    {
+      "id": 6,
+      "type": "caption",
+      "from": 0,
+      "durationInFrames": 1387,
+      "captions": [
+        {
+          "text": "In the winter of 2047,",
+          "startMs": 160,
+          "endMs": 1800,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "In",
+              "startMs": 160,
+              "endMs": 224,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 224,
+              "endMs": 296,
+              "confidence": 0.99
+            },
+            {
+              "word": "winter",
+              "startMs": 296,
+              "endMs": 480,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 488,
+              "endMs": 680,
+              "confidence": 0.99
+            },
+            {
+              "word": "2047,",
+              "startMs": 720,
+              "endMs": 1800,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "beneath the snow dusted peaks",
+          "startMs": 1920,
+          "endMs": 3608,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "beneath",
+              "startMs": 1920,
+              "endMs": 2376,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 2408,
+              "endMs": 2552,
+              "confidence": 0.99
+            },
+            {
+              "word": "snow",
+              "startMs": 2576,
+              "endMs": 2824,
+              "confidence": 0.99
+            },
+            {
+              "word": "dusted",
+              "startMs": 2872,
+              "endMs": 3304,
+              "confidence": 0.99
+            },
+            {
+              "word": "peaks",
+              "startMs": 3352,
+              "endMs": 3608,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "of the Swiss Alps, a",
+          "startMs": 3624,
+          "endMs": 5272,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "of",
+              "startMs": 3624,
+              "endMs": 3752,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 3776,
+              "endMs": 3912,
+              "confidence": 0.99
+            },
+            {
+              "word": "Swiss",
+              "startMs": 3936,
+              "endMs": 4184,
+              "confidence": 0.99
+            },
+            {
+              "word": "Alps,",
+              "startMs": 4232,
+              "endMs": 4872,
+              "confidence": 0.99
+            },
+            {
+              "word": "a",
+              "startMs": 5016,
+              "endMs": 5272,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "team of physicists at the",
+          "startMs": 5296,
+          "endMs": 6552,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "team",
+              "startMs": 5296,
+              "endMs": 5432,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 5456,
+              "endMs": 5592,
+              "confidence": 0.99
+            },
+            {
+              "word": "physicists",
+              "startMs": 5616,
+              "endMs": 6184,
+              "confidence": 0.99
+            },
+            {
+              "word": "at",
+              "startMs": 6232,
+              "endMs": 6392,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 6416,
+              "endMs": 6552,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "European Quantum Research Collective made",
+          "startMs": 6576,
+          "endMs": 8872,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "European",
+              "startMs": 6576,
+              "endMs": 7064,
+              "confidence": 0.99
+            },
+            {
+              "word": "Quantum",
+              "startMs": 7112,
+              "endMs": 7496,
+              "confidence": 0.99
+            },
+            {
+              "word": "Research",
+              "startMs": 7528,
+              "endMs": 7912,
+              "confidence": 0.99
+            },
+            {
+              "word": "Collective",
+              "startMs": 8016,
+              "endMs": 8600,
+              "confidence": 0.99
+            },
+            {
+              "word": "made",
+              "startMs": 8680,
+              "endMs": 8872,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "a discovery that would unravel",
+          "startMs": 8896,
+          "endMs": 10392,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "a",
+              "startMs": 8896,
+              "endMs": 9032,
+              "confidence": 0.99
+            },
+            {
+              "word": "discovery",
+              "startMs": 9056,
+              "endMs": 9544,
+              "confidence": 0.99
+            },
+            {
+              "word": "that",
+              "startMs": 9592,
+              "endMs": 9752,
+              "confidence": 0.99
+            },
+            {
+              "word": "would",
+              "startMs": 9776,
+              "endMs": 9912,
+              "confidence": 0.99
+            },
+            {
+              "word": "unravel",
+              "startMs": 9936,
+              "endMs": 10392,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "humanity's understanding of its place",
+          "startMs": 10456,
+          "endMs": 12360,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "humanity's",
+              "startMs": 10456,
+              "endMs": 11144,
+              "confidence": 0.99
+            },
+            {
+              "word": "understanding",
+              "startMs": 11192,
+              "endMs": 11704,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 11752,
+              "endMs": 11912,
+              "confidence": 0.99
+            },
+            {
+              "word": "its",
+              "startMs": 11936,
+              "endMs": 12120,
+              "confidence": 0.99
+            },
+            {
+              "word": "place",
+              "startMs": 12160,
+              "endMs": 12360,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "in the cosmos. It began",
+          "startMs": 12400,
+          "endMs": 14696,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "in",
+              "startMs": 12400,
+              "endMs": 12600,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 12640,
+              "endMs": 12792,
+              "confidence": 0.99
+            },
+            {
+              "word": "cosmos.",
+              "startMs": 12816,
+              "endMs": 13660,
+              "confidence": 0.99
+            },
+            {
+              "word": "It",
+              "startMs": 14160,
+              "endMs": 14472,
+              "confidence": 0.99
+            },
+            {
+              "word": "began",
+              "startMs": 14496,
+              "endMs": 14696,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "as a routine calibration of",
+          "startMs": 14728,
+          "endMs": 16344.000000000002,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "as",
+              "startMs": 14728,
+              "endMs": 14920,
+              "confidence": 0.99
+            },
+            {
+              "word": "a",
+              "startMs": 14960,
+              "endMs": 15112,
+              "confidence": 0.99
+            },
+            {
+              "word": "routine",
+              "startMs": 15136,
+              "endMs": 15512,
+              "confidence": 0.99
+            },
+            {
+              "word": "calibration",
+              "startMs": 15576,
+              "endMs": 16120.000000000002,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 16200,
+              "endMs": 16344.000000000002,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "the Chronos Array, a prototype",
+          "startMs": 16352,
+          "endMs": 18696,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "the",
+              "startMs": 16352,
+              "endMs": 16520,
+              "confidence": 0.99
+            },
+            {
+              "word": "Chronos",
+              "startMs": 16560,
+              "endMs": 17064,
+              "confidence": 0.99
+            },
+            {
+              "word": "Array,",
+              "startMs": 17112,
+              "endMs": 17704,
+              "confidence": 0.99
+            },
+            {
+              "word": "a",
+              "startMs": 17832,
+              "endMs": 18120,
+              "confidence": 0.99
+            },
+            {
+              "word": "prototype",
+              "startMs": 18160,
+              "endMs": 18696,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "detector designed to map quantum",
+          "startMs": 18728,
+          "endMs": 20456,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "detector",
+              "startMs": 18728,
+              "endMs": 19272,
+              "confidence": 0.99
+            },
+            {
+              "word": "designed",
+              "startMs": 19336,
+              "endMs": 19656,
+              "confidence": 0.99
+            },
+            {
+              "word": "to",
+              "startMs": 19688,
+              "endMs": 19832,
+              "confidence": 0.99
+            },
+            {
+              "word": "map",
+              "startMs": 19856,
+              "endMs": 20056,
+              "confidence": 0.99
+            },
+            {
+              "word": "quantum",
+              "startMs": 20088,
+              "endMs": 20456,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "entanglement fluctuations across spacetime. The",
+          "startMs": 20488,
+          "endMs": 23832,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "entanglement",
+              "startMs": 20488,
+              "endMs": 21032,
+              "confidence": 0.99
+            },
+            {
+              "word": "fluctuations",
+              "startMs": 21096,
+              "endMs": 21736,
+              "confidence": 0.99
+            },
+            {
+              "word": "across",
+              "startMs": 21768,
+              "endMs": 22104,
+              "confidence": 0.99
+            },
+            {
+              "word": "spacetime.",
+              "startMs": 22192,
+              "endMs": 23336,
+              "confidence": 0.99
+            },
+            {
+              "word": "The",
+              "startMs": 23528,
+              "endMs": 23832,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "machine's purpose was purely theoretical",
+          "startMs": 23856,
+          "endMs": 26238,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "machine's",
+              "startMs": 23856,
+              "endMs": 24376,
+              "confidence": 0.99
+            },
+            {
+              "word": "purpose",
+              "startMs": 24408,
+              "endMs": 24744,
+              "confidence": 0.99
+            },
+            {
+              "word": "was",
+              "startMs": 24792,
+              "endMs": 25000,
+              "confidence": 0.99
+            },
+            {
+              "word": "purely",
+              "startMs": 25040,
+              "endMs": 25352,
+              "confidence": 0.99
+            },
+            {
+              "word": "theoretical",
+              "startMs": 25416,
+              "endMs": 26238,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "to test whether subatomic particles",
+          "startMs": 26384,
+          "endMs": 28402,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "to",
+              "startMs": 26384,
+              "endMs": 26642,
+              "confidence": 0.99
+            },
+            {
+              "word": "test",
+              "startMs": 26666,
+              "endMs": 26850,
+              "confidence": 0.99
+            },
+            {
+              "word": "whether",
+              "startMs": 26890,
+              "endMs": 27138,
+              "confidence": 0.99
+            },
+            {
+              "word": "subatomic",
+              "startMs": 27194,
+              "endMs": 27954,
+              "confidence": 0.99
+            },
+            {
+              "word": "particles",
+              "startMs": 28002,
+              "endMs": 28402,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "could retain memory of their",
+          "startMs": 28466,
+          "endMs": 30402,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "could",
+              "startMs": 28466,
+              "endMs": 28738,
+              "confidence": 0.99
+            },
+            {
+              "word": "retain",
+              "startMs": 28794,
+              "endMs": 29298,
+              "confidence": 0.99
+            },
+            {
+              "word": "memory",
+              "startMs": 29394,
+              "endMs": 29938,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 30034,
+              "endMs": 30242,
+              "confidence": 0.99
+            },
+            {
+              "word": "their",
+              "startMs": 30266,
+              "endMs": 30402,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "entangled partners after separation. But",
+          "startMs": 30426,
+          "endMs": 33570,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "entangled",
+              "startMs": 30426,
+              "endMs": 30994,
+              "confidence": 0.99
+            },
+            {
+              "word": "partners",
+              "startMs": 31042,
+              "endMs": 31538,
+              "confidence": 0.99
+            },
+            {
+              "word": "after",
+              "startMs": 31634,
+              "endMs": 31986,
+              "confidence": 0.99
+            },
+            {
+              "word": "separation.",
+              "startMs": 32058,
+              "endMs": 33026,
+              "confidence": 0.99
+            },
+            {
+              "word": "But",
+              "startMs": 33218,
+              "endMs": 33570,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "on the evening of December",
+          "startMs": 33610,
+          "endMs": 34674,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "on",
+              "startMs": 33610,
+              "endMs": 33714,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 33722,
+              "endMs": 33842,
+              "confidence": 0.99
+            },
+            {
+              "word": "evening",
+              "startMs": 33866,
+              "endMs": 34066,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 34098,
+              "endMs": 34290,
+              "confidence": 0.99
+            },
+            {
+              "word": "December",
+              "startMs": 34330,
+              "endMs": 34674,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "12, the array detected something",
+          "startMs": 34722,
+          "endMs": 36658,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "12,",
+              "startMs": 34722,
+              "endMs": 35138,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 35234,
+              "endMs": 35442,
+              "confidence": 0.99
+            },
+            {
+              "word": "array",
+              "startMs": 35466,
+              "endMs": 35874,
+              "confidence": 0.99
+            },
+            {
+              "word": "detected",
+              "startMs": 35922,
+              "endMs": 36322,
+              "confidence": 0.99
+            },
+            {
+              "word": "something",
+              "startMs": 36386,
+              "endMs": 36658,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "its creators had not a",
+          "startMs": 36714,
+          "endMs": 39042,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "its",
+              "startMs": 36714,
+              "endMs": 36930,
+              "confidence": 0.99
+            },
+            {
+              "word": "creators",
+              "startMs": 36970,
+              "endMs": 37314,
+              "confidence": 0.99
+            },
+            {
+              "word": "had",
+              "startMs": 37362,
+              "endMs": 37522,
+              "confidence": 0.99
+            },
+            {
+              "word": "not",
+              "startMs": 37546,
+              "endMs": 38110,
+              "confidence": 0.99
+            },
+            {
+              "word": "a",
+              "startMs": 38730,
+              "endMs": 39042,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "gravitational anomaly. Faint but persistent,",
+          "startMs": 39066,
+          "endMs": 41970,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "gravitational",
+              "startMs": 39066,
+              "endMs": 39682,
+              "confidence": 0.99
+            },
+            {
+              "word": "anomaly.",
+              "startMs": 39746,
+              "endMs": 40546,
+              "confidence": 0.99
+            },
+            {
+              "word": "Faint",
+              "startMs": 40658,
+              "endMs": 41026,
+              "confidence": 0.99
+            },
+            {
+              "word": "but",
+              "startMs": 41058,
+              "endMs": 41298,
+              "confidence": 0.99
+            },
+            {
+              "word": "persistent,",
+              "startMs": 41354,
+              "endMs": 41970,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "pulsing like a phantom heartbeat",
+          "startMs": 42050,
+          "endMs": 43858,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "pulsing",
+              "startMs": 42050,
+              "endMs": 42498,
+              "confidence": 0.99
+            },
+            {
+              "word": "like",
+              "startMs": 42514,
+              "endMs": 42642,
+              "confidence": 0.99
+            },
+            {
+              "word": "a",
+              "startMs": 42666,
+              "endMs": 42754,
+              "confidence": 0.99
+            },
+            {
+              "word": "phantom",
+              "startMs": 42762,
+              "endMs": 43154,
+              "confidence": 0.99
+            },
+            {
+              "word": "heartbeat",
+              "startMs": 43202,
+              "endMs": 43858,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "just outside the boundaries of",
+          "startMs": 43954,
+          "endMs": 45330,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "just",
+              "startMs": 43954,
+              "endMs": 44162,
+              "confidence": 0.99
+            },
+            {
+              "word": "outside",
+              "startMs": 44186,
+              "endMs": 44466,
+              "confidence": 0.99
+            },
+            {
+              "word": "the",
+              "startMs": 44538,
+              "endMs": 44722,
+              "confidence": 0.99
+            },
+            {
+              "word": "boundaries",
+              "startMs": 44746,
+              "endMs": 45138,
+              "confidence": 0.99
+            },
+            {
+              "word": "of",
+              "startMs": 45154,
+              "endMs": 45330,
+              "confidence": 0.99
+            }
+          ]
+        },
+        {
+          "text": "measurable reality.",
+          "startMs": 45370,
+          "endMs": 46210,
+          "timestampMs": null,
+          "confidence": 0.99,
+          "words": [
+            {
+              "word": "measurable",
+              "startMs": 45370,
+              "endMs": 45842,
+              "confidence": 0.99
+            },
+            {
+              "word": "reality.",
+              "startMs": 45906,
+              "endMs": 46210,
+              "confidence": 0.99
+            }
+          ]
+        }
+      ],
+      "styles": {
+        "position": "absolute",
+        "bottom": "10%",
+        "left": "50%",
+        "transform": "translateX(-50%)",
+        "width": "90%",
+        "maxWidth": "1000px",
+        "textAlign": "center",
+        "zIndex": 10,
+        "backgroundColor": "rgba(0, 0, 0, 0.3)",
+        "borderRadius": "8px",
+        "padding": "8px",
+        "fontFamily": "Caveat, cursive",
+        "fontSize": "2.2rem",
+        "lineHeight": 1.4,
+        "color": "#FFFFFF",
+        "textShadow": "1px 1px 2px rgba(0,0,0,0.6)",
+        "fontWeight": "normal",
+        "highlightStyle": {
+          "backgroundColor": "rgba(34, 197, 94, 0.9)",
+          "color": "#FFFFFF",
+          "fontWeight": 600,
+          "textShadow": "1px 1px 2px rgba(0,0,0,0.4)",
+          "borderRadius": "8px",
+          "padding": "0 4px",
+          "display": "inline-block",
+          "transform": "scale(1.08)"
+        }
+      },
+      "isDragging": false,
+      "rotation": 0,
+      "row": 0,
+      "left": 0,
+      "top": 0,
+      "width": 0,
+      "height": 0,
+      "videoStartTime": 0,
+      "content": ""
+    }
+  ],
+  "durationInFrames": 1432,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080
+}

@@ -6,7 +6,7 @@ const defaultTimeline: Timeline = {
   height: 1080,
   fps: 30,
   durationInFrames: 300,
-  scenes: []
+  overlays: []
 };
 
 export const RemotionRoot: React.FC = () => {
