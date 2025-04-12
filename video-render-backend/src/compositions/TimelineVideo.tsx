@@ -1,5 +1,6 @@
-import { AbsoluteFill, Video, Img, Audio, Sequence, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Video, Audio, Sequence, useCurrentFrame } from 'remotion';
 import { KenBurnsEffect, KenBurnsConfig } from '../components/KenBurnsEffect';
+import { PreloadedImage } from '../components/PreloadedImage';
 
 interface Overlay {
   id: number | string;
@@ -60,7 +61,7 @@ export const TimelineVideo: React.FC<{ timeline: Timeline }> = ({ timeline }) =>
                     />
                   );
                 } else {
-                  return <Img src={overlay.src} style={style} />;
+                  return <PreloadedImage src={overlay.src} style={style} />;
                 }
               })() : null}
 
@@ -81,7 +82,7 @@ export const TimelineVideo: React.FC<{ timeline: Timeline }> = ({ timeline }) =>
                     style={style}
                   />
                 ) : (
-                  <Img src={overlay.src} style={style} />
+                  <PreloadedImage src={overlay.src} style={style} />
                 )
               )}
             </Sequence>
