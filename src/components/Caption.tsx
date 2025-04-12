@@ -11,10 +11,10 @@ const Caption: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const { 
-    voiceOver, 
-    scenes, 
-    setScenes, 
+  const {
+    voiceOver,
+    scenes,
+    setScenes,
     setActiveCaption,
     handleSetCaptionSegments
   } = useStoryboard();
@@ -29,7 +29,7 @@ const Caption: React.FC = () => {
       setIsLoading(true);
       const response = await fetch('/api/caption/list');
       const data = await response.json();
-      
+
       if (data.captions) {
         setCaptions(data.captions);
       }
@@ -49,7 +49,7 @@ const Caption: React.FC = () => {
 
     try {
       setIsGenerating(true);
-      toast.loading('Generating captions from voice-over...');
+      const toastId = toast.loading('Generating captions from voice-over...');
 
       const response = await fetch('/api/caption/generate', {
         method: 'POST',
@@ -64,7 +64,9 @@ const Caption: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Captions generated successfully');
+        toast.success('Captions generated successfully', {
+          id: toastId
+        });
         // Add the new caption to the list
         setCaptions(prev => [
           {
@@ -74,11 +76,15 @@ const Caption: React.FC = () => {
           ...prev,
         ]);
       } else {
-        toast.error(data.error || 'Failed to generate captions');
+        toast.error(data.error || 'Failed to generate captions', {
+          id: toastId
+        });
       }
     } catch (error) {
       console.error('Error generating captions:', error);
-      toast.error('Failed to generate captions');
+      toast.error('Failed to generate captions', {
+        id: toastId
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -92,7 +98,7 @@ const Caption: React.FC = () => {
 
     try {
       setIsSyncing(true);
-      toast.loading(`Syncing caption "${caption.name}" with scenes...`);
+      const toastId = toast.loading(`Syncing caption "${caption.name}" with scenes...`);
 
       // Fetch the VTT file content
       const response = await fetch(caption.url);
@@ -100,9 +106,12 @@ const Caption: React.FC = () => {
 
       // Parse the VTT content
       const captionSegments = parseVTT(vttContent);
-      
+
       if (captionSegments.length === 0) {
-        toast.error('No caption segments found in the VTT file');
+        toast.error('No caption segments found in the VTT file', {
+          id: toastId
+        });
+        setIsSyncing(false);
         return;
       }
 
@@ -111,35 +120,39 @@ const Caption: React.FC = () => {
       // Log for debugging
       console.log('Voice-over duration:', voiceOver?.duration);
       console.log('Caption segments:', captionSegments);
-      console.log('Last caption segment end time:', 
+      console.log('Last caption segment end time:',
         captionSegments.length > 0 ? captionSegments[captionSegments.length - 1].endTime : 'N/A');
 
       // Synchronize scene durations with caption timing
       const updatedScenes = syncSceneDurations(
-        [...scenes], 
+        [...scenes],
         captionSegments,
         voiceOver?.duration
       );
       console.log('Updated scenes with synced durations:', updatedScenes);
-      
+
       // Update scenes with new durations
       setScenes(updatedScenes);
 
       // Store caption segments in context for display during playback
       handleSetCaptionSegments(captionSegments);
-      
+
       // Set this caption as the active caption
       setActiveCaption({
         ...caption,
         segments: captionSegments
       });
-      
-      toast.success(`Caption "${caption.name}" synced with scenes successfully`);
+
+      toast.success(`Caption "${caption.name}" synced with scenes successfully`, {
+        id: toastId
+      });
       console.log('Updated scenes with synced durations:', updatedScenes);
-      
+
     } catch (error) {
       console.error('Error syncing caption with scenes:', error);
-      toast.error('Failed to sync caption with scenes');
+      toast.error('Failed to sync caption with scenes', {
+        id: toastId
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -154,10 +167,10 @@ const Caption: React.FC = () => {
       >
         {isGenerating ? 'Generating...' : 'Generate Caption'}
       </button>
-      
+
       <div className="mt-4">
         <h3 className="text-white text-sm font-medium mb-2">Your Captions</h3>
-        
+
         {isLoading ? (
           <div className="bg-[#1a1f2c] rounded-md p-4 text-gray-400 text-center">
             <p>Loading captions...</p>
@@ -165,8 +178,8 @@ const Caption: React.FC = () => {
         ) : captions.length > 0 ? (
           <div className="space-y-2">
             {captions.map((caption, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="bg-[#1a1f2c] rounded-md p-3 flex justify-between items-center hover:bg-[#252a37] transition-colors cursor-pointer"
               >
                 <div className="flex items-center space-x-3">
@@ -181,7 +194,7 @@ const Caption: React.FC = () => {
                     <p className="text-xs text-gray-400">VTT Caption</p>
                   </div>
                 </div>
-                <button 
+                <button
                   className="text-purple-400 hover:text-purple-300"
                   onClick={(e) => {
                     e.stopPropagation();
