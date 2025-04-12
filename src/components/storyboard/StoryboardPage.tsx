@@ -16,11 +16,11 @@ const StoryboardContent = () => {
   return (
     <div className="min-h-screen bg-[#0a0d14] text-white flex flex-col">
       {/* Sidebar */}
-      <Sidebar 
-        isExpanded={isSidebarExpanded} 
-        onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} 
+      <Sidebar
+        isExpanded={isSidebarExpanded}
+        onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
       />
-      
+
       {/* Main content with padding to account for sidebar */}
       <div className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-56' : 'ml-14'}`}>
         <div className="max-w-full">

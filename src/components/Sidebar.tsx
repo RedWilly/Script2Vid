@@ -13,7 +13,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
   const [isAudioPanelVisible, setIsAudioPanelVisible] = useState(false);
   const [isTextPanelVisible, setIsTextPanelVisible] = useState(false);
-  
+
   // Close other panels when opening a new one
   const handleAudioPanelToggle = () => {
     setIsAudioPanelVisible(!isAudioPanelVisible);
@@ -28,10 +28,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
       setIsAudioPanelVisible(false);
     }
   };
-  
+
   return (
     <>
-      <div 
+      <div
         className={`fixed left-0 top-0 h-full bg-[#0a0d14] border-r border-[#1a1f2c]/50 transition-all duration-300 flex flex-col z-40 ${
           isExpanded ? 'w-56' : 'w-14'
         }`}
@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                 </a>
                 {isExpanded && <span className="mt-1 text-xs text-gray-400">Visualizer</span>}
               </div>
-              
+
               {/* Storyboard */}
               <div className="flex flex-col items-center">
                 <a href="/storyboard" className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-[#1a1f2c]/50 transition-colors">
@@ -78,13 +78,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                 </a>
                 {isExpanded && <span className="mt-1 text-xs text-gray-400">Storyboard</span>}
               </div>
-              
+
               {/* Text */}
               <div className="flex flex-col items-center">
-                <div 
+                <div
                   className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                    isTextPanelVisible 
-                      ? 'text-purple-400 bg-[#1a1f2c]' 
+                    isTextPanelVisible
+                      ? 'text-purple-400 bg-[#1a1f2c]'
                       : 'text-gray-400 hover:text-white hover:bg-[#1a1f2c]/50'
                   }`}
                   onClick={handleTextPanelToggle}
@@ -98,10 +98,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
 
               {/* Audio */}
               <div className="flex flex-col items-center">
-                <div 
+                <div
                   className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                    isAudioPanelVisible 
-                      ? 'text-purple-400 bg-[#1a1f2c]' 
+                    isAudioPanelVisible
+                      ? 'text-purple-400 bg-[#1a1f2c]'
                       : 'text-gray-400 hover:text-white hover:bg-[#1a1f2c]/50'
                   }`}
                   onClick={handleAudioPanelToggle}
@@ -118,10 +118,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
       </div>
 
       {/* Audio Panel */}
-      <AudioPanel isVisible={isAudioPanelVisible} />
-      
+      <AudioPanel
+        isVisible={isAudioPanelVisible}
+        onClose={handleAudioPanelToggle}
+      />
+
       {/* Text Panel */}
-      <TextPanel isVisible={isTextPanelVisible} />
+      <TextPanel
+        isVisible={isTextPanelVisible}
+        onClose={handleTextPanelToggle}
+      />
     </>
   );
 };
