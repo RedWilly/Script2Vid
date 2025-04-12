@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useStoryboard } from './StoryboardContext';
 
 export function VideoExport() {
-  const { isExporting, scenes, voiceOver, totalDuration, activeCaption } = useStoryboard();
+  const { isExporting, scenes, voiceOver, activeCaption } = useStoryboard();
 
   const handleExport = async () => {
     try {
@@ -21,7 +21,24 @@ export function VideoExport() {
         const sceneDurationFrames = Math.ceil(scene.duration * fps);
         sceneDurationSec += scene.duration;
         const url = scene.imageUrl || "";
-        const filename = url.split('/').pop() || "";
+        // Prepare styles object with Ken Burns effect if present
+        const styles: Record<string, any> = {
+          opacity: 1,
+          zIndex: 100,
+          objectFit: "cover",
+          borderRadius: "0px"
+        };
+
+        // Add Ken Burns effect configuration if present
+        if (scene.kenBurns && scene.kenBurns.enabled) {
+          styles.kenBurns = {
+            enabled: scene.kenBurns.enabled,
+            zoomType: scene.kenBurns.zoomType,
+            direction: scene.kenBurns.direction,
+            speed: scene.kenBurns.speed
+          };
+        }
+
         const overlay = {
           left: 0,
           top: 0,
@@ -36,13 +53,7 @@ export function VideoExport() {
           type: "image",
           src: url,
           videoStartTime: 0,
-          styles: {
-            opacity: 1,
-            zIndex: 100,
-            transform: "none",
-            objectFit: "cover",
-            borderRadius: "0px"
-          }
+          styles
         };
         currentFrame += sceneDurationFrames;
         sceneOverlays.push(overlay);

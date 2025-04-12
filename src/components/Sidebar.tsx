@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import AudioPanel from './AudioPanel';
 import TextPanel from './TextPanel';
 import KenBurnsPanel from './effects/KenBurnsPanel';
-import { DEFAULT_KEN_BURNS_CONFIG, KenBurnsConfig, KenBurnsAutomation } from './effects/ken-burns-effect';
+import { DEFAULT_KEN_BURNS_CONFIG, KenBurnsConfig } from './effects/ken-burns-effect';
 
 interface SidebarProps {
   isExpanded: boolean;

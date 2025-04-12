@@ -1,4 +1,5 @@
 import { AbsoluteFill, Video, Img, Audio, Sequence, useCurrentFrame } from 'remotion';
+import { KenBurnsEffect, KenBurnsConfig } from '../components/KenBurnsEffect';
 
 interface Overlay {
   id: number | string;
@@ -72,7 +73,16 @@ export const TimelineVideo: React.FC<{ timeline: Timeline }> = ({ timeline }) =>
               )}
 
               {overlay.type === 'image' && overlay.src && (
-                <Img src={overlay.src} style={style} />
+                overlay.styles?.kenBurns?.enabled ? (
+                  <KenBurnsEffect
+                    src={overlay.src}
+                    durationInFrames={overlay.durationInFrames}
+                    config={overlay.styles.kenBurns as KenBurnsConfig}
+                    style={style}
+                  />
+                ) : (
+                  <Img src={overlay.src} style={style} />
+                )
               )}
             </Sequence>
           );
@@ -126,7 +136,7 @@ function TimedCaption({
 }) {
   const frame = useCurrentFrame();
   const currentMs = (frame / fps) * 1000;
-  
+
   // Find the active caption
   const activeCaption = captions.find(
     (c: any) => c.startMs <= currentMs && currentMs < c.endMs
