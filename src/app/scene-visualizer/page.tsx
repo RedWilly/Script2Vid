@@ -18,43 +18,52 @@ export default function SceneVisualizer() {
   const [isPreparing, setIsPreparing] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allScenesPrepared, setAllScenesPrepared] = useState(false);
+
+  // Check if all scenes are prepared whenever scenes change
+  useEffect(() => {
+    if (scenes.length > 0) {
+      const allPrepared = scenes.every(scene => scene.prompt && scene.prompt.trim() !== "");
+      setAllScenesPrepared(allPrepared);
+    }
+  }, [scenes]);
 
   useEffect(() => {
     // Get script from localStorage instead of URL parameters
     const script = localStorage.getItem('scriptVizContent');
-    
+
     if (!script) {
       toast.error("No script found. Please go back and enter your script.");
       return;
     }
-    
+
     // Improved scene splitting algorithm based on sentences
     function splitScript(script: string, maxWordsPerSentence: number = 35): string[] {
       if (!script) return [];
-      
+
       // Regular expression that respects honorifics (Mr., Mrs., Dr., etc.)
       const honorificsRegex = /(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|Rev|Sr|Jr|St|Sgt|Capt|Lt|Col|Gen|Adm|Sen|Rep|Gov|Atty|Supt|Det|Insp)\.)(?<=[.!?])\s+(?=[A-Z])/g;
-      
+
       // Split script into sentences using regex that respects honorifics
       const sentences: string[] = script
           .split(honorificsRegex)
           .map(sentence => sentence.trim())
           .filter(sentence => sentence.length > 0);
-      
+
       const scenes: string[] = [];
-      
+
       // Process each sentence
       for (const sentence of sentences) {
         // Count words in the sentence
         const wordCount = sentence.split(/\s+/).filter(word => word.length > 0).length;
-        
+
         // If sentence is longer than maxWordsPerSentence, split it
         if (wordCount > maxWordsPerSentence) {
           // Split long sentence into chunks of approximately equal size
           const words = sentence.split(/\s+/).filter(word => word.length > 0);
           const numChunks = Math.ceil(wordCount / maxWordsPerSentence);
           const wordsPerChunk = Math.ceil(wordCount / numChunks);
-          
+
           for (let i = 0; i < numChunks; i++) {
             const start = i * wordsPerChunk;
             const end = Math.min(start + wordsPerChunk, words.length);
@@ -68,20 +77,20 @@ export default function SceneVisualizer() {
           scenes.push(sentence);
         }
       }
-      
+
       return scenes;
     }
-    
+
     // Use the improved algorithm to split the script into scenes
     const sceneTexts = splitScript(script);
-    
+
     // Initialize scenes with empty prompts
     const initialScenes = sceneTexts.map((text, index) => ({
       id: `scene-${index}`,
       content: text,
       prompt: ""
     }));
-    
+
     setScenes(initialScenes);
   }, []);
 
@@ -95,14 +104,14 @@ export default function SceneVisualizer() {
 
     try {
       setIsGeneratingImage(true);
-      
+
       // Generate the image using the prepared prompt
       const updatedScene = await generateImage(
-        scene.id || `scene-${sceneIndex}`, 
+        scene.id || `scene-${sceneIndex}`,
         scene.prompt,
         scene.content
       );
-      
+
       // Update the scenes array with the new image information
       const updatedScenes = [...scenes];
       updatedScenes[sceneIndex] = {
@@ -110,7 +119,7 @@ export default function SceneVisualizer() {
         imageUrl: updatedScene.imageUrl,
         seed: updatedScene.seed
       };
-      
+
       setScenes(updatedScenes);
       toast.success("Image generated successfully!");
     } catch (error) {
@@ -124,16 +133,16 @@ export default function SceneVisualizer() {
   const prepareScene = async (sceneIndex: number) => {
     if (sceneIndex >= 0 && sceneIndex < scenes.length) {
       setIsPreparing(true);
-      
+
       try {
         const scene = scenes[sceneIndex];
-        
+
         // Get the previous prompt for context (if not the first scene)
         const previousPrompt = sceneIndex > 0 ? scenes[sceneIndex - 1].prompt : undefined;
-        
+
         // Use the AI to generate a prompt
         let aiGeneratedPrompt = "";
-        
+
         try {
           aiGeneratedPrompt = await generateImagePrompt({
             sceneText: scene.content,
@@ -145,14 +154,14 @@ export default function SceneVisualizer() {
           aiGeneratedPrompt = `${basePrompt} ${scene.content} --16:9`;
           toast.error("AI preparation failed. Using default prompt.");
         }
-        
+
         // Update the scene with the generated prompt
         const updatedScenes = [...scenes];
         updatedScenes[sceneIndex] = {
           ...scene,
           prompt: aiGeneratedPrompt
         };
-        
+
         setScenes(updatedScenes);
         toast.success("Scene prepared!");
       } catch (error) {
@@ -184,18 +193,56 @@ export default function SceneVisualizer() {
 
     try {
       setIsGeneratingImage(true);
-      
+
       // Add IDs to scenes if they don't have them
-      const scenesWithIds = scenes.map((scene, index) => ({
+      let updatedScenes = scenes.map((scene, index) => ({
         ...scene,
         id: scene.id || `scene-${index}`
       }));
-      
-      // Generate images for all scenes with prompts
-      const updatedScenes = await generateAllImages(scenesWithIds);
-      
-      setScenes(updatedScenes);
-      toast.success(`Generated ${scenesWithPrompts.length} images successfully!`);
+
+      // Generate images sequentially one by one
+      let failedScenes = 0;
+
+      for (let i = 0; i < updatedScenes.length; i++) {
+        const scene = updatedScenes[i];
+
+        // Skip scenes without prompts
+        if (!scene.prompt) {
+          continue;
+        }
+
+        try {
+          // Generate image for this scene
+          const updatedScene = await generateImage(
+            scene.id || `scene-${i}`,
+            scene.prompt,
+            scene.content
+          );
+
+          // Update the scene with the generated image
+          updatedScenes[i] = {
+            ...updatedScenes[i],
+            imageUrl: updatedScene.imageUrl,
+            seed: updatedScene.seed
+          };
+
+          // Update the scenes state to show progress
+          setScenes([...updatedScenes]);
+
+          // Show progress toast
+          toast.success(`Image ${i + 1} of ${scenesWithPrompts.length} generated`);
+        } catch (error) {
+          console.error(`Error generating image for scene ${i + 1}:`, error);
+          failedScenes++;
+          toast.error(`Failed to generate image for scene ${i + 1}.`);
+        }
+      }
+
+      if (failedScenes > 0) {
+        toast.info(`Generation complete with ${failedScenes} failed images.`);
+      } else {
+        toast.success(`Generated ${scenesWithPrompts.length} images successfully!`);
+      }
     } catch (error) {
       console.error("Error generating all images:", error);
       toast.error("Failed to generate images. Please try again.");
@@ -206,12 +253,62 @@ export default function SceneVisualizer() {
 
   const prepareAllScenes = async () => {
     setIsPreparing(true);
-    
+
     try {
-      // Use the service to generate all prompts at once
-      const updatedScenes = await generateAllImagePrompts(scenes);
-      setScenes(updatedScenes);
-      toast.success("All scenes prepared!");
+      // Prepare scenes sequentially one by one
+      let updatedScenes = [...scenes];
+      let failedScenes = 0;
+
+      for (let i = 0; i < scenes.length; i++) {
+        const scene = scenes[i];
+
+        try {
+          // Get the previous prompt for context (if not the first scene)
+          const previousPrompt = i > 0 ? updatedScenes[i - 1].prompt : undefined;
+
+          // Use the AI to generate a prompt
+          const aiGeneratedPrompt = await generateImagePrompt({
+            sceneText: scene.content,
+            previousPrompt
+          });
+
+          // Update the scene with the generated prompt
+          updatedScenes[i] = {
+            ...scene,
+            prompt: aiGeneratedPrompt
+          };
+
+          // Update the scenes state to show progress
+          setScenes([...updatedScenes]);
+
+          // Show progress toast
+          toast.success(`Scene ${i + 1} of ${scenes.length} prepared`);
+        } catch (error) {
+          console.error(`Error preparing scene ${i + 1}:`, error);
+          failedScenes++;
+
+          // If AI generation fails, use the base prompt as fallback
+          updatedScenes[i] = {
+            ...scene,
+            prompt: scene.prompt || `${basePrompt} ${scene.content} --16:9`
+          };
+
+          // Update the scenes state to show progress even with failures
+          setScenes([...updatedScenes]);
+
+          toast.error(`Failed to prepare scene ${i + 1}. Using default prompt.`);
+        }
+      }
+
+      // Check if all scenes have prompts and set the state
+      const allPrepared = updatedScenes.every(scene => scene.prompt && scene.prompt.trim() !== "");
+      setAllScenesPrepared(allPrepared);
+
+      if (failedScenes > 0) {
+        toast.info(`Preparation complete with ${failedScenes} failed scenes. Default prompts were used for failed scenes.`);
+      } else {
+        toast.success("All scenes prepared successfully!");
+      }
     } catch (error) {
       console.error("Error preparing all scenes:", error);
       toast.error("Failed to prepare all scenes. Please try again.");
@@ -234,13 +331,13 @@ export default function SceneVisualizer() {
                 <span className="text-white">Viz</span>
               </h1>
             </div>
-            
+
             <div className="flex items-center">
               {/* Generate All button on desktop only */}
               <div className="hidden sm:block mr-2">
-                <Button 
-                  onClick={generateAllPrompts}
-                  disabled={isGeneratingImage || scenes.length === 0}
+                <Button
+                  onClick={allScenesPrepared ? generateAllPrompts : prepareAllScenes}
+                  disabled={(allScenesPrepared ? isGeneratingImage : isPreparing) || scenes.length === 0}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
                   {isGeneratingImage ? (
@@ -251,31 +348,39 @@ export default function SceneVisualizer() {
                       </svg>
                       <span className="truncate">Generating...</span>
                     </>
+                  ) : isPreparing ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="truncate">Preparing...</span>
+                    </>
                   ) : (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                       </svg>
-                      <span className="truncate">Generate All</span>
+                      <span className="truncate">{allScenesPrepared ? "Generate All" : "Prepare All"}</span>
                     </>
                   )}
                 </Button>
               </div>
-              
+
               {/* StoryBoard button */}
               <div className="hidden sm:block mr-2">
-                <Button 
+                <Button
                   onClick={() => {
                     // Add default duration to scenes before saving to localStorage
                     const scenesWithDuration = scenes.map(scene => ({
                       ...scene,
                       duration: scene.duration || 5.0  // Default 5 second duration if not set
                     }));
-                    
+
                     // Save scenes to localStorage for the StoryBoard page to access
                     localStorage.setItem('scriptVizScenes', JSON.stringify(scenesWithDuration));
                     console.log("Saving scenes to localStorage for StoryBoard:", scenesWithDuration);
-                    
+
                     // Navigate to the StoryBoard page
                     window.location.href = '/storyboard';
                   }}
@@ -291,18 +396,18 @@ export default function SceneVisualizer() {
               </div>
               {/* Mobile StoryBoard button
               <div className="block sm:hidden ml-2">
-                <Button 
+                <Button
                   onClick={() => {
                     // Add default duration to scenes before saving to localStorage
                     const scenesWithDuration = scenes.map(scene => ({
                       ...scene,
                       duration: scene.duration || 5.0 // Default 5 second duration if not set
                     }));
-                    
+
                     // Save scenes to localStorage for the StoryBoard page to access
                     localStorage.setItem('scriptVizScenes', JSON.stringify(scenesWithDuration));
                     console.log("Saving scenes to localStorage for StoryBoard (mobile):", scenesWithDuration);
-                    
+
                     // Navigate to the StoryBoard page
                     window.location.href = '/storyboard';
                   }}
@@ -317,8 +422,8 @@ export default function SceneVisualizer() {
                 </Button>
               </div> */}
               <Link href="/">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-sm sm:text-base"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -343,12 +448,12 @@ export default function SceneVisualizer() {
                 </svg>
                 Scenes ({scenes.length})
               </h2>
-              
+
               {/* Show Generate All button on mobile next to Scenes heading */}
               <div className="block sm:hidden">
-                <Button 
-                  onClick={generateAllPrompts}
-                  disabled={isGeneratingImage || scenes.length === 0}
+                <Button
+                  onClick={allScenesPrepared ? generateAllPrompts : prepareAllScenes}
+                  disabled={(allScenesPrepared ? isGeneratingImage : isPreparing) || scenes.length === 0}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 text-xs"
                 >
                   {isGeneratingImage ? (
@@ -359,26 +464,34 @@ export default function SceneVisualizer() {
                       </svg>
                       <span className="truncate">Generating...</span>
                     </>
+                  ) : isPreparing ? (
+                    <>
+                      <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="truncate">Preparing...</span>
+                    </>
                   ) : (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                       </svg>
-                      <span className="truncate">Generate All</span>
+                      <span className="truncate">{allScenesPrepared ? "Generate All" : "Prepare All"}</span>
                     </>
                   )}
                 </Button>
               </div>
             </div>
-            
+
             {/* Scene list - hidden on small screens */}
             <div className="space-y-3 hidden lg:block">
               {scenes.map((scene, index) => (
-                <div 
+                <div
                   key={index}
                   className={`p-3 sm:p-4 rounded-lg cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
-                    selectedSceneIndex === index 
-                      ? "bg-gradient-to-r from-blue-900/70 to-blue-800/50 border border-blue-700/50 shadow-lg" 
+                    selectedSceneIndex === index
+                      ? "bg-gradient-to-r from-blue-900/70 to-blue-800/50 border border-blue-700/50 shadow-lg"
                       : "bg-gray-800/50 border border-gray-700/30 hover:bg-gray-800/80"
                   }`}
                   onClick={() => setSelectedSceneIndex(index)}
@@ -403,7 +516,7 @@ export default function SceneVisualizer() {
                 </div>
               ))}
             </div>
-            
+
             {/* Mobile current scene preview */}
             <div className="lg:hidden">
               {scenes.length > 0 && selectedSceneIndex < scenes.length && (
@@ -428,7 +541,7 @@ export default function SceneVisualizer() {
                 </div>
               )}
             </div>
-            
+
             {/* Mobile scene navigation */}
             <div className="flex lg:hidden justify-between items-center mb-3 bg-gray-800/30 rounded-lg p-2">
               <Button
@@ -477,7 +590,7 @@ export default function SceneVisualizer() {
                       Image Prompt
                     </h2>
                     <div className="flex space-x-2">
-                      <Button 
+                      <Button
                         onClick={() => generatePrompt(selectedSceneIndex)}
                         disabled={isGeneratingImage}
                         className="bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 flex-1 sm:flex-auto justify-center"
@@ -499,7 +612,7 @@ export default function SceneVisualizer() {
                           </>
                         )}
                       </Button>
-                      <Button 
+                      <Button
                         onClick={() => prepareScene(selectedSceneIndex)}
                         disabled={isPreparing}
                         className="bg-green-600 hover:bg-green-700 text-white rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 flex-1 sm:flex-auto justify-center"
@@ -522,7 +635,7 @@ export default function SceneVisualizer() {
                         )}
                       </Button>
                       {scenes[selectedSceneIndex].prompt && (
-                        <Button 
+                        <Button
                           variant="outline"
                           onClick={() => copyPromptToClipboard(scenes[selectedSceneIndex].prompt)}
                           className="bg-transparent hover:bg-gray-800 text-gray-300 border border-gray-700 rounded-md transition-all hover:text-white flex items-center gap-1 sm:gap-2 flex-1 sm:flex-auto justify-center"
@@ -557,8 +670,8 @@ export default function SceneVisualizer() {
                 {scenes[selectedSceneIndex]?.imageUrl && (
                   <div className="mt-4 border border-gray-700 rounded-lg overflow-hidden">
                     <div className="relative pb-[56.25%]"> {/* 16:9 aspect ratio */}
-                      <img 
-                        src={scenes[selectedSceneIndex].imageUrl} 
+                      <img
+                        src={scenes[selectedSceneIndex].imageUrl}
                         alt={`Generated image for scene ${selectedSceneIndex + 1}`}
                         className="absolute inset-0 w-full h-full object-contain bg-gray-950"
                       />
@@ -571,7 +684,7 @@ export default function SceneVisualizer() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex justify-between hidden lg:flex mt-4">
                   <Button
                     variant="outline"
@@ -601,7 +714,7 @@ export default function SceneVisualizer() {
           </div>
         </div>
       </main>
-      
+
       <footer className="mt-auto py-4 text-center text-gray-500 text-sm">
         <p>ScriptViz {new Date().getFullYear()} - Create better visuals for your content</p>
       </footer>

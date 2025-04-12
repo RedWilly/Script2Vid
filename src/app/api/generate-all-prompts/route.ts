@@ -27,11 +27,11 @@ export async function POST(request: Request) {
     }
 
     const updatedScenes = [...scenes];
-    
+
     // Process scenes one by one to maintain continuity
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
-      
+
       // Prepare the messages for the API call
       const messages: ChatCompletionMessageParam[] = [
         {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       // Add the current scene text as the user message
       messages.push({
         role: 'user',
-        content: scene.text,
+        content: scene.content,
       });
 
       try {
@@ -65,10 +65,10 @@ export async function POST(request: Request) {
 
         // Extract the generated prompt from the response
         const generatedPrompt = completion.choices[0]?.message?.content || '';
-        
+
         // Add the style prefix and the --16:9 format specification
         const formattedPrompt = `${IMAGE_STYLE_PREFIX} ${generatedPrompt.trim()} --16:9`;
-        
+
         updatedScenes[i] = {
           ...scene,
           prompt: formattedPrompt,
