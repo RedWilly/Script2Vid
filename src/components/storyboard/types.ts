@@ -13,9 +13,11 @@ export interface SceneWithDuration extends Scene {
 
 // Voice-over file interface
 export interface VoiceOverFile {
+  id: string;
   name: string;
   url: string;
   duration: number;
+  voiceId?: string; // Optional voice identifier
 }
 
 // Word segment interface for word-level timestamps
