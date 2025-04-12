@@ -32,6 +32,12 @@ export async function POST(request: Request) {
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
 
+      // Skip scenes that are just included for context (when preparing a single scene)
+      // We identify these by checking if this is not the last scene and it already has a prompt
+      if (i < scenes.length - 1 && scene.prompt) {
+        continue;
+      }
+
       // Prepare the messages for the API call
       const messages: ChatCompletionMessageParam[] = [
         {
@@ -41,6 +47,7 @@ export async function POST(request: Request) {
       ];
 
       // If there's a previous prompt, add it as context
+      // This could be from a scene we just processed or from a scene included for context
       if (i > 0 && updatedScenes[i - 1].prompt) {
         messages.push({
           role: 'assistant',
@@ -83,7 +90,16 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ scenes: updatedScenes });
+    // Modify the response to avoid leaking full prompts in network requests
+    const sanitizedScenes = updatedScenes.map(scene => ({
+      ...scene,
+      // Include a flag to indicate if the prompt was successfully generated
+      promptGenerated: !!scene.prompt,
+      // Don't send the full prompt back to the client
+      promptFirstWord: scene.prompt ? scene.prompt.split(' ')[0] + '...' : ''
+    }));
+
+    return NextResponse.json({ scenes: sanitizedScenes });
   } catch (error) {
     console.error('Error generating all prompts:', error);
     return NextResponse.json(

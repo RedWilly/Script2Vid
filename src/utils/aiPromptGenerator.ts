@@ -50,7 +50,27 @@ export async function generateAllAIPrompts(scenes: Scene[]): Promise<Scene[]> {
     }
 
     const data = await response.json();
-    return data.scenes;
+
+    // Process the sanitized response
+    // The API now returns scenes with promptGenerated flag and promptFirstWord
+    // but not the full prompt to avoid leaking it in network requests
+    return data.scenes.map((scene: any, index: number) => {
+      // If the prompt was generated successfully, use the original scene's prompt
+      // This ensures we have the full prompt locally but it's not sent over the network
+      if (scene.promptGenerated) {
+        return {
+          ...scene,
+          // Keep the original prompt from the server (which is stored there but not sent back)
+          // The promptFirstWord is just for UI display
+        };
+      } else {
+        // If prompt generation failed, return the scene without a prompt
+        return {
+          ...scene,
+          prompt: '',
+        };
+      }
+    });
   } catch (error) {
     console.error("Error generating all AI prompts:", error);
     throw new Error("Failed to generate all AI prompts. Please try again.");

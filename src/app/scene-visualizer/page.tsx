@@ -136,34 +136,41 @@ export default function SceneVisualizer() {
 
       try {
         const scene = scenes[sceneIndex];
+        const toastId = toast.loading("Preparing scene...");
 
         // Get the previous prompt for context (if not the first scene)
         const previousPrompt = sceneIndex > 0 ? scenes[sceneIndex - 1].prompt : undefined;
 
-        // Use the AI to generate a prompt
-        let aiGeneratedPrompt = "";
+        // Create a temporary array with just the scene we want to prepare
+        // and the previous scene for context
+        const scenesToPrepare = [];
 
-        try {
-          aiGeneratedPrompt = await generateImagePrompt({
-            sceneText: scene.content,
-            previousPrompt
-          });
-        } catch (error) {
-          // If AI generation fails, use the base prompt as fallback
-          console.error("AI preparation failed, using fallback:", error);
-          aiGeneratedPrompt = `${basePrompt} ${scene.content} --16:9`;
-          toast.error("AI preparation failed. Using default prompt.");
+        // If there's a previous scene, include it for context
+        if (sceneIndex > 0) {
+          scenesToPrepare.push(scenes[sceneIndex - 1]);
         }
+
+        // Add the current scene
+        scenesToPrepare.push(scene);
+
+        // Use the server-side API to prepare the scene
+        const preparedScenes = await generateAllImagePrompts(scenesToPrepare);
+
+        // Get the prepared scene (it will be the last one in the array)
+        const preparedScene = preparedScenes[preparedScenes.length - 1];
 
         // Update the scene with the generated prompt
         const updatedScenes = [...scenes];
-        updatedScenes[sceneIndex] = {
-          ...scene,
-          prompt: aiGeneratedPrompt
-        };
+        updatedScenes[sceneIndex] = preparedScene;
 
         setScenes(updatedScenes);
-        toast.success("Scene prepared!");
+        toast.dismiss(toastId);
+
+        if (preparedScene.prompt) {
+          toast.success("Scene prepared!");
+        } else {
+          toast.error("Failed to prepare scene. Please try again.");
+        }
       } catch (error) {
         console.error("Error in scene preparation:", error);
         toast.error("Failed to prepare scene. Please try again.");
@@ -255,57 +262,27 @@ export default function SceneVisualizer() {
     setIsPreparing(true);
 
     try {
-      // Prepare scenes sequentially one by one
-      let updatedScenes = [...scenes];
-      let failedScenes = 0;
+      // Use the server-side API to prepare all scenes at once
+      const toastId = toast.loading("Preparing all scenes...");
 
-      for (let i = 0; i < scenes.length; i++) {
-        const scene = scenes[i];
+      // Call the server-side API
+      const updatedScenes = await generateAllImagePrompts(scenes);
 
-        try {
-          // Get the previous prompt for context (if not the first scene)
-          const previousPrompt = i > 0 ? updatedScenes[i - 1].prompt : undefined;
-
-          // Use the AI to generate a prompt
-          const aiGeneratedPrompt = await generateImagePrompt({
-            sceneText: scene.content,
-            previousPrompt
-          });
-
-          // Update the scene with the generated prompt
-          updatedScenes[i] = {
-            ...scene,
-            prompt: aiGeneratedPrompt
-          };
-
-          // Update the scenes state to show progress
-          setScenes([...updatedScenes]);
-
-          // Show progress toast
-          toast.success(`Scene ${i + 1} of ${scenes.length} prepared`);
-        } catch (error) {
-          console.error(`Error preparing scene ${i + 1}:`, error);
-          failedScenes++;
-
-          // If AI generation fails, use the base prompt as fallback
-          updatedScenes[i] = {
-            ...scene,
-            prompt: scene.prompt || `${basePrompt} ${scene.content} --16:9`
-          };
-
-          // Update the scenes state to show progress even with failures
-          setScenes([...updatedScenes]);
-
-          toast.error(`Failed to prepare scene ${i + 1}. Using default prompt.`);
-        }
-      }
+      // Update the scenes state with the results
+      setScenes(updatedScenes);
 
       // Check if all scenes have prompts and set the state
       const allPrepared = updatedScenes.every(scene => scene.prompt && scene.prompt.trim() !== "");
       setAllScenesPrepared(allPrepared);
 
+      // Count failed scenes
+      const failedScenes = updatedScenes.filter(scene => !scene.prompt || scene.prompt.trim() === "").length;
+
+      // Dismiss the loading toast
+      toast.dismiss(toastId);
+
       if (failedScenes > 0) {
-        toast.info(`Preparation complete with ${failedScenes} failed scenes. Default prompts were used for failed scenes.`);
+        toast.info(`Preparation complete with ${failedScenes} failed scenes. Failed scenes will be skipped.`);
       } else {
         toast.success("All scenes prepared successfully!");
       }
@@ -384,7 +361,7 @@ export default function SceneVisualizer() {
                     // Navigate to the StoryBoard page
                     window.location.href = '/storyboard';
                   }}
-                  disabled={scenes.filter(scene => scene.imageUrl).length === 0}
+                  disabled={scenes.length === 0 || scenes.some(scene => !scene.imageUrl)}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -411,7 +388,7 @@ export default function SceneVisualizer() {
                     // Navigate to the StoryBoard page
                     window.location.href = '/storyboard';
                   }}
-                  disabled={scenes.filter(scene => scene.imageUrl).length === 0}
+                  disabled={scenes.length === 0 || scenes.some(scene => !scene.imageUrl)}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-md transition-all shadow-md hover:shadow-lg flex items-center gap-1 text-xs"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -650,9 +627,33 @@ export default function SceneVisualizer() {
                     </div>
                   </div>
 
-                  {scenes[selectedSceneIndex].prompt ? (
-                    <div className="p-3 sm:p-4 bg-gray-800/50 rounded-lg border border-gray-700/30 min-h-[120px]">
-                      <p className="text-gray-300 font-mono text-sm sm:text-base break-words">{scenes[selectedSceneIndex].prompt}</p>
+                  {/* Display the generated image if available */}
+                  {scenes[selectedSceneIndex]?.imageUrl ? (
+                    <div className="border border-gray-700 rounded-lg overflow-hidden">
+                      <div className="relative pb-[56.25%]"> {/* 16:9 aspect ratio */}
+                        <img
+                          src={scenes[selectedSceneIndex].imageUrl}
+                          alt={`Generated image for scene ${selectedSceneIndex + 1}`}
+                          className="absolute inset-0 w-full h-full object-contain bg-gray-950"
+                        />
+                      </div>
+                      <div className="bg-gray-800 px-3 py-2 text-xs text-gray-300 flex justify-between items-center">
+                        <span>Generated Image</span>
+                        {scenes[selectedSceneIndex].seed && (
+                          <span>Seed: {scenes[selectedSceneIndex].seed}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : scenes[selectedSceneIndex].prompt ? (
+                    <div className="p-3 sm:p-4 bg-gray-800/50 rounded-lg border border-gray-700/30 min-h-[120px] flex items-center">
+                      <div className="flex items-center text-green-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="font-medium">
+                          {scenes[selectedSceneIndex].promptFirstWord || scenes[selectedSceneIndex].prompt.split(' ')[0]}... (Prompt prepared)
+                        </span>
+                      </div>
                     </div>
                   ) : (
                     <div className="p-3 sm:p-4 bg-gray-800/50 rounded-lg border border-gray-700/30 min-h-[120px] flex items-center justify-center">
@@ -660,30 +661,13 @@ export default function SceneVisualizer() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
-                        Click "Generate" to create an image prompt
+                        Click "Prepare" to create an image prompt
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* Display the generated image if available */}
-                {scenes[selectedSceneIndex]?.imageUrl && (
-                  <div className="mt-4 border border-gray-700 rounded-lg overflow-hidden">
-                    <div className="relative pb-[56.25%]"> {/* 16:9 aspect ratio */}
-                      <img
-                        src={scenes[selectedSceneIndex].imageUrl}
-                        alt={`Generated image for scene ${selectedSceneIndex + 1}`}
-                        className="absolute inset-0 w-full h-full object-contain bg-gray-950"
-                      />
-                    </div>
-                    <div className="bg-gray-800 px-3 py-2 text-xs text-gray-300 flex justify-between items-center">
-                      <span>Generated Image</span>
-                      {scenes[selectedSceneIndex].seed && (
-                        <span>Seed: {scenes[selectedSceneIndex].seed}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
+
 
                 <div className="flex justify-between hidden lg:flex mt-4">
                   <Button
