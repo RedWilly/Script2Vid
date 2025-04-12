@@ -95,7 +95,7 @@ const VoiceOverWaveform: React.FC<VoiceOverWaveformProps> = ({
     ctx.shadowColor = 'rgba(0, 191, 255, 0.5)';
 
     // Calculate progress position
-    const progress = Math.min(currentTime / totalDuration, 1);
+    const progress = totalDuration > 0 ? Math.min(currentTime / totalDuration, 1) : 0;
     const progressX = Math.floor(width * progress);
 
     // Draw waveform

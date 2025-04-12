@@ -185,7 +185,7 @@ export const TimelineRuler = () => {
                 >
                   {scenes.map((scene, index) => {
                     // Calculate width based on duration
-                    const widthPercentage = (scene.duration / totalDuration) * 100;
+                    const widthPercentage = totalDuration > 0 ? (scene.duration / totalDuration) * 100 : 0;
                     const isSelected = selectedSceneIndex === index;
 
                     return (
@@ -195,7 +195,6 @@ export const TimelineRuler = () => {
                           ${isSelected ? 'ring-2 ring-purple-500 ring-inset' : ''}`}
                         style={{
                           width: `${widthPercentage}%`,
-                          minWidth: '80px', // Ensure thumbnails have a minimum width
                           flexShrink: 0
                         }}
                         onClick={(e) => handleSceneClick(e, index)}
@@ -290,7 +289,7 @@ export const TimelineRuler = () => {
                 <div
                   ref={playheadRef}
                   className="absolute top-0 bottom-0 w-0.5 bg-purple-500 cursor-ew-resize z-30 group"
-                  style={{ left: `${(currentTime / totalDuration) * 100}%`, height: '100%' }}
+                  style={{ left: totalDuration > 0 ? `${(currentTime / totalDuration) * 100}%` : '0%', height: '100%' }}
                   onMouseDown={handlePlayheadMouseDown}
                   onClick={(e) => e.stopPropagation()}
                 >

@@ -190,9 +190,13 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
 
   // --- Playhead & Timeline Interaction ---
   const updatePlayheadPosition = useCallback((time: number, currentTotalDuration: number) => {
-    if (!playheadRef.current || !timelineRulerRef.current || currentTotalDuration <= 0) {
-      // If duration is 0, explicitly set playhead to start
-      if (playheadRef.current) playheadRef.current.style.left = '0px';
+    if (!playheadRef.current || !timelineRulerRef.current) {
+      return;
+    }
+
+    // If duration is 0 or invalid, explicitly set playhead to start
+    if (currentTotalDuration <= 0) {
+      playheadRef.current.style.left = '0px';
       return;
     }
 
