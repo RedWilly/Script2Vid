@@ -126,15 +126,54 @@ function TimedCaption({
 }) {
   const frame = useCurrentFrame();
   const currentMs = (frame / fps) * 1000;
-  const active = captions.filter(
+  
+  // Find the active caption
+  const activeCaption = captions.find(
     (c: any) => c.startMs <= currentMs && currentMs < c.endMs
   );
-  if (active.length === 0) return null;
+
+  if (!activeCaption) return null;
+
+  // Find the current word to highlight
+  const currentWord = activeCaption.words.find(
+    (w: any) => w.startMs <= currentMs && currentMs < w.endMs
+  );
+
+  // Split text into words and apply highlighting
+  const words = activeCaption.text.split(' ');
+  const highlightedText = words.map((word: string, index: number) => {
+    const isHighlighted = currentWord && currentWord.word === word;
+    return (
+      <span
+        key={index}
+        style={isHighlighted ? {
+          backgroundColor: "rgba(34, 197, 94, 0.9)",
+          color: "#FFFFFF",
+          fontWeight: 600,
+          textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
+          borderRadius: "8px",
+          padding: "0 4px",
+          transform: "scale(1.08)",
+          display: "inline-block",
+          margin: "0 2px"
+        } : undefined}
+      >
+        {word}{' '}
+      </span>
+    );
+  });
+
   return (
-    <div style={style}>
-      {active.map((cap: any, idx: number) => (
-        <div key={idx}>{cap.text}</div>
-      ))}
+    <div style={{
+      ...style,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      textAlign: 'center',
+      width: '100%',
+      padding: '20px'
+    }}>
+      <div>{highlightedText}</div>
     </div>
   );
 }

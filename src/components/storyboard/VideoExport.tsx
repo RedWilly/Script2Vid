@@ -82,26 +82,16 @@ export function VideoExport() {
           durationInFrames: 0, // will be set below
           captions: [] as any[],
           styles: {
-            // Container styles
-            position: "absolute",
-            bottom: "10%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "90%",
-            maxWidth: "1000px",
-            textAlign: "center",
-            zIndex: 10,
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            borderRadius: "8px",
-            padding: "8px",
-            // Text styles
             fontFamily: "Caveat, cursive",
             fontSize: "2.2rem",
             lineHeight: 1.4,
+            textAlign: "center",
             color: "#FFFFFF",
             textShadow: "1px 1px 2px rgba(0,0,0,0.6)",
             fontWeight: "normal",
-            // Highlight word styles
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            borderRadius: "8px",
+            padding: "8px",
             highlightStyle: {
               backgroundColor: "rgba(34, 197, 94, 0.9)",
               color: "#FFFFFF",
@@ -109,7 +99,6 @@ export function VideoExport() {
               textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
               borderRadius: "8px",
               padding: "0 4px",
-              display: "inline-block",
               transform: "scale(1.08)"
             }
           },
