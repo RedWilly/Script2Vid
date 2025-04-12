@@ -53,11 +53,11 @@ export const CaptionOverlay: React.FC<CaptionOverlayProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  
+
   // Calculate current time within the video (global time)
   const currentTime = sceneStartTime + frame / fps;
   const sceneEndTime = sceneStartTime + sceneDuration;
-  
+
   // Filter caption segments that are visible in this scene
   const visibleSegments = useMemo(() => {
     return captionSegments.filter(segment => {
@@ -69,14 +69,14 @@ export const CaptionOverlay: React.FC<CaptionOverlayProps> = ({
       );
     });
   }, [captionSegments, sceneStartTime, sceneEndTime]);
-  
+
   // Find the active segment based on current time
   const activeSegment = useMemo(() => {
     return captionSegments.find(
       segment => currentTime >= segment.startTime && currentTime <= segment.endTime
     );
   }, [captionSegments, currentTime]);
-  
+
   // Find the current word to highlight based on word-level timestamps
   const findCurrentWord = (segment: CaptionSegment, currentTime: number): number => {
     // If we have word-level timestamps, use them for precise highlighting
@@ -84,23 +84,23 @@ export const CaptionOverlay: React.FC<CaptionOverlayProps> = ({
       const currentWord = segment.words.findIndex(
         word => currentTime >= word.startTime && currentTime <= word.endTime
       );
-      
+
       // If we found a current word, return its index
       if (currentWord !== -1) {
         return currentWord;
       }
-      
+
       // If we're before the first word, return -1
       if (currentTime < segment.words[0].startTime) {
         return -1;
       }
-      
+
       // If we're after the last word, return the last word index
       if (currentTime > segment.words[segment.words.length - 1].endTime) {
         return segment.words.length - 1;
       }
     }
-    
+
     // Fallback to the old method if we don't have word-level timestamps
     const words = segment.text.split(' ');
     const segmentDuration = segment.endTime - segment.startTime;
@@ -108,27 +108,27 @@ export const CaptionOverlay: React.FC<CaptionOverlayProps> = ({
     const segmentElapsedTime = Math.max(0, currentTime - segment.startTime);
     return Math.min(Math.floor(segmentElapsedTime / timePerWord), words.length - 1);
   };
-  
+
   // Render caption with highlighted word
   const renderCaptionWithHighlight = (segment: CaptionSegment) => {
     // Split the text into words
     const words = segment.text.split(' ');
-    
+
     // Don't highlight any word if we're before the segment start time
     if (currentTime < segment.startTime) {
       return <span>{segment.text}</span>;
     }
-    
+
     // Find the current word to highlight
     const currentWordIndex = findCurrentWord(segment, currentTime);
-    
+
     // Render each word with or without highlight
     return words.map((word, index) => {
       const isHighlighted = index === currentWordIndex;
-      
+
       return (
-        <span 
-          key={index} 
+        <span
+          key={index}
           style={isHighlighted ? { ...captionStyles.highlightWord } : {}}
         >
           {word}{' '}
@@ -136,31 +136,22 @@ export const CaptionOverlay: React.FC<CaptionOverlayProps> = ({
       );
     });
   };
-  
+
   if (!visibleSegments.length) {
     return null;
   }
-  
+
+  // Only render if we have an active segment
+  if (!activeSegment) {
+    return null;
+  }
+
   return (
     <div style={captionStyles.container as React.CSSProperties}>
       <div style={captionStyles.text as React.CSSProperties}>
-        {visibleSegments.map((segment, index) => {
-          const isActiveSegment = activeSegment && activeSegment.startTime === segment.startTime;
-          
-          // Only show the active segment's text
-          if (activeSegment && !isActiveSegment) {
-            return null;
-          }
-          
-          return (
-            <div key={index}>
-              {isActiveSegment
-                ? renderCaptionWithHighlight(segment)
-                : segment.text
-              }
-            </div>
-          );
-        })}
+        <div>
+          {renderCaptionWithHighlight(activeSegment)}
+        </div>
       </div>
     </div>
   );

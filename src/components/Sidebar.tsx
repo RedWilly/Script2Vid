@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import AudioPanel from './AudioPanel';
 import TextPanel from './TextPanel';
@@ -13,6 +13,24 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
   const [isAudioPanelVisible, setIsAudioPanelVisible] = useState(false);
   const [isTextPanelVisible, setIsTextPanelVisible] = useState(false);
+
+  // Listen for the custom event to close sidebars
+  useEffect(() => {
+    const handleCloseSidebars = () => {
+      if (isAudioPanelVisible || isTextPanelVisible) {
+        setIsAudioPanelVisible(false);
+        setIsTextPanelVisible(false);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('closeSidebars', handleCloseSidebars);
+
+    // Clean up
+    return () => {
+      document.removeEventListener('closeSidebars', handleCloseSidebars);
+    };
+  }, [isAudioPanelVisible, isTextPanelVisible]);
 
   // Close other panels when opening a new one
   const handleAudioPanelToggle = () => {

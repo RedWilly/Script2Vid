@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/Sidebar";
@@ -13,6 +13,14 @@ import { RemotionTimeline } from './RemotionTimeline';
 const StoryboardContent = () => {
   const { isSidebarExpanded, setIsSidebarExpanded } = useStoryboard();
 
+  // Function to close any open sidebars when clicking on the main content
+  const handleMainContentClick = useCallback(() => {
+    // We need to access the Sidebar component's state
+    // Since we don't have direct access, we'll use a custom event
+    const closeSidebarsEvent = new CustomEvent('closeSidebars');
+    document.dispatchEvent(closeSidebarsEvent);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0a0d14] text-white flex flex-col">
       {/* Sidebar */}
@@ -22,7 +30,10 @@ const StoryboardContent = () => {
       />
 
       {/* Main content with padding to account for sidebar */}
-      <div className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-56' : 'ml-14'}`}>
+      <div
+        className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-56' : 'ml-14'}`}
+        onClick={handleMainContentClick}
+      >
         <div className="max-w-full">
           {/* Header */}
           <header className="bg-[#0a0d14] border-b border-[#1a1f2c]/50 p-4 flex items-center justify-between">

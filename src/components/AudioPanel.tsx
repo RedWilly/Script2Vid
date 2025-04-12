@@ -16,7 +16,10 @@ const AudioPanel: React.FC<AudioPanelProps> = ({ isVisible, onClose }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed right-0 top-0 h-full w-80 bg-[#0f1218] border-l border-[#1a1f2c] z-30 shadow-xl">
+    <div
+      className="fixed right-0 top-0 h-full w-80 bg-[#0f1218] border-l border-[#1a1f2c] z-30 shadow-xl"
+      onClick={(e) => e.stopPropagation()} // Prevent clicks from reaching the main content
+    >
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="border-b border-[#1a1f2c] p-4 flex justify-between items-center">
