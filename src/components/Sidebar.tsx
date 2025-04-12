@@ -4,22 +4,28 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import AudioPanel from './AudioPanel';
 import TextPanel from './TextPanel';
+import KenBurnsPanel from './effects/KenBurnsPanel';
+import { DEFAULT_KEN_BURNS_CONFIG, KenBurnsConfig, KenBurnsAutomation } from './effects/ken-burns-effect';
 
 interface SidebarProps {
   isExpanded: boolean;
   onToggle: () => void;
+  onApplyKenBurnsToAllScenes?: (config: KenBurnsConfig) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle, onApplyKenBurnsToAllScenes }) => {
   const [isAudioPanelVisible, setIsAudioPanelVisible] = useState(false);
   const [isTextPanelVisible, setIsTextPanelVisible] = useState(false);
+  const [isKenBurnsPanelVisible, setIsKenBurnsPanelVisible] = useState(false);
+  const [kenBurnsConfig, setKenBurnsConfig] = useState<KenBurnsConfig>(DEFAULT_KEN_BURNS_CONFIG);
 
   // Listen for the custom event to close sidebars
   useEffect(() => {
     const handleCloseSidebars = () => {
-      if (isAudioPanelVisible || isTextPanelVisible) {
+      if (isAudioPanelVisible || isTextPanelVisible || isKenBurnsPanelVisible) {
         setIsAudioPanelVisible(false);
         setIsTextPanelVisible(false);
+        setIsKenBurnsPanelVisible(false);
       }
     };
 
@@ -30,13 +36,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
     return () => {
       document.removeEventListener('closeSidebars', handleCloseSidebars);
     };
-  }, [isAudioPanelVisible, isTextPanelVisible]);
+  }, [isAudioPanelVisible, isTextPanelVisible, isKenBurnsPanelVisible]);
 
   // Close other panels when opening a new one
   const handleAudioPanelToggle = () => {
     setIsAudioPanelVisible(!isAudioPanelVisible);
     if (!isAudioPanelVisible) {
       setIsTextPanelVisible(false);
+      setIsKenBurnsPanelVisible(false);
     }
   };
 
@@ -44,6 +51,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
     setIsTextPanelVisible(!isTextPanelVisible);
     if (!isTextPanelVisible) {
       setIsAudioPanelVisible(false);
+      setIsKenBurnsPanelVisible(false);
+    }
+  };
+
+  const handleKenBurnsPanelToggle = () => {
+    setIsKenBurnsPanelVisible(!isKenBurnsPanelVisible);
+    if (!isKenBurnsPanelVisible) {
+      setIsAudioPanelVisible(false);
+      setIsTextPanelVisible(false);
+    }
+  };
+
+  // Handle applying Ken Burns effect to all scenes
+  const handleApplyKenBurnsToAllScenes = () => {
+    if (onApplyKenBurnsToAllScenes) {
+      onApplyKenBurnsToAllScenes(kenBurnsConfig);
     }
   };
 
@@ -130,6 +153,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                 </div>
                 {isExpanded && <span className="mt-1 text-xs text-gray-400">Audio</span>}
               </div>
+
+              {/* Ken Burns Effect */}
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                    isKenBurnsPanelVisible
+                      ? 'text-purple-400 bg-[#1a1f2c]'
+                      : 'text-gray-400 hover:text-white hover:bg-[#1a1f2c]/50'
+                  }`}
+                  onClick={handleKenBurnsPanelToggle}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                {isExpanded && <span className="mt-1 text-xs text-gray-400">Ken Burns</span>}
+              </div>
             </div>
           </div>
         </div>
@@ -145,6 +185,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
       <TextPanel
         isVisible={isTextPanelVisible}
         onClose={handleTextPanelToggle}
+      />
+
+      {/* Ken Burns Panel */}
+      <KenBurnsPanel
+        isVisible={isKenBurnsPanelVisible}
+        onClose={handleKenBurnsPanelToggle}
+        config={kenBurnsConfig}
+        onChange={setKenBurnsConfig}
+        onApplyToAllScenes={handleApplyKenBurnsToAllScenes}
       />
     </>
   );

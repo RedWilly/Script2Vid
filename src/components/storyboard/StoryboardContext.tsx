@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { SceneWithDuration, MIN_SCENE_DURATION, DEFAULT_SCENE_DURATION, VoiceOverFile, CaptionSegment, CaptionFile } from './types';
+import { KenBurnsConfig, KenBurnsAutomation } from '../effects/ken-burns-effect';
 
 interface StoryboardContextType {
   // Scene state
@@ -10,7 +11,7 @@ interface StoryboardContextType {
   setScenes: React.Dispatch<React.SetStateAction<SceneWithDuration[]>>;
   selectedSceneIndex: number | null;
   setSelectedSceneIndex: React.Dispatch<React.SetStateAction<number | null>>;
-  
+
   // Playback state
   currentTime: number;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
@@ -19,18 +20,18 @@ interface StoryboardContextType {
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   currentTimeDisplay: string;
-  
+
   // Voice-over state
   voiceOver: VoiceOverFile | null;
   setVoiceOver: React.Dispatch<React.SetStateAction<VoiceOverFile | null>>;
   isVoiceOverPlaying: boolean;
   isVoiceOverLoaded: boolean;
-  
+
   // Caption state
   activeCaption: CaptionFile | null;
   setActiveCaption: React.Dispatch<React.SetStateAction<CaptionFile | null>>;
   currentCaptionText: string;
-  
+
   // Trim state
   isTrimming: boolean;
   trimmingSceneIndex: number | null;
@@ -41,24 +42,24 @@ interface StoryboardContextType {
   setIsDraggingRightTrim: React.Dispatch<React.SetStateAction<boolean>>;
   activeTrimDuration: number | null;
   setActiveTrimDuration: React.Dispatch<React.SetStateAction<number | null>>;
-  
+
   // Playhead state
   isDraggingPlayhead: boolean;
   setIsDraggingPlayhead: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   // Export state
   isExporting: boolean;
   setIsExporting: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   // Sidebar state
   isSidebarExpanded: boolean;
   setIsSidebarExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  
+
   // Refs
   timelineRulerRef: React.RefObject<HTMLDivElement>;
   playheadRef: React.RefObject<HTMLDivElement>;
   timelineRowRef: React.RefObject<HTMLDivElement>;
-  
+
   // Functions
   recalculateTotalDuration: (currentScenes: SceneWithDuration[]) => number;
   getSceneStartTime: (index: number, currentScenes: SceneWithDuration[]) => number;
@@ -71,14 +72,17 @@ interface StoryboardContextType {
   handleDeleteScene: (indexToDelete: number) => void;
   handlePlayPause: () => void;
   handleExportVideo: () => Promise<void>;
-  
+
   // Voice-over methods
   handleAddVoiceOver: (voiceOverFile: VoiceOverFile) => void;
   handlePlayVoiceOver: () => void;
   handlePauseVoiceOver: () => void;
-  
+
   // Caption methods
   handleSetCaptionSegments: (segments: CaptionSegment[]) => void;
+
+  // Ken Burns methods
+  handleApplyKenBurnsToAllScenes: (config: KenBurnsConfig) => void;
 }
 
 const StoryboardContext = createContext<StoryboardContextType | undefined>(undefined);
@@ -99,46 +103,46 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   // Scene state
   const [scenes, setScenes] = useState<SceneWithDuration[]>([]);
   const [selectedSceneIndex, setSelectedSceneIndex] = useState<number | null>(null);
-  
+
   // Playback state
   const [currentTime, setCurrentTime] = useState(0);
   const [currentTimeDisplay, setCurrentTimeDisplay] = useState('00:00');
   const [totalDuration, setTotalDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  
+
   // Voice-over state
   const [voiceOver, setVoiceOver] = useState<VoiceOverFile | null>(null);
   const [isVoiceOverPlaying, setIsVoiceOverPlaying] = useState(false);
   const [isVoiceOverLoaded, setIsVoiceOverLoaded] = useState(false);
-  
+
   // Caption state
   const [activeCaption, setActiveCaption] = useState<CaptionFile | null>(null);
   const [captionSegments, setCaptionSegments] = useState<CaptionSegment[]>([]);
   const [currentCaptionText, setCurrentCaptionText] = useState('');
-  
+
   // Trim state
   const [isDraggingLeftTrim, setIsDraggingLeftTrim] = useState(false);
   const [isDraggingRightTrim, setIsDraggingRightTrim] = useState(false);
   const [trimmingSceneIndex, setTrimmingSceneIndex] = useState<number | null>(null);
   const [activeTrimDuration, setActiveTrimDuration] = useState<number | null>(null);
-  
+
   // Playhead state
   const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
-  
+
   // Export state
   const [isExporting, setIsExporting] = useState(false);
-  
+
   // Sidebar state
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  
+
   // Refs
   const timelineRulerRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
   const timelineRowRef = useRef<HTMLDivElement>(null);
-  
+
   // Computed state
   const isTrimming = isDraggingLeftTrim || isDraggingRightTrim;
-  
+
   // --- Duration & Time Calculations ---
   const recalculateTotalDuration = useCallback((currentScenes: SceneWithDuration[]) => {
     const total = currentScenes.reduce((sum, scene) => sum + scene.duration, 0);
@@ -159,26 +163,26 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
 
   const getSceneIndexAtTime = useCallback((time: number, currentScenes: SceneWithDuration[], totalDur: number): number | null => {
     if (currentScenes.length === 0 || time < 0 || totalDur <= 0) return null;
-    
+
     // If time is at or beyond total duration, return the last scene
     if (time >= totalDur) {
       return currentScenes.length - 1;
     }
-    
+
     let accumulatedTime = 0;
-    
+
     for (let i = 0; i < currentScenes.length; i++) {
       const scene = currentScenes[i];
       const sceneEndTime = accumulatedTime + scene.duration;
-      
+
       // If time falls within this scene's duration
       if (time >= accumulatedTime && time < sceneEndTime) {
         return i;
       }
-      
+
       accumulatedTime = sceneEndTime;
     }
-    
+
     // Fallback to first scene if no match found (shouldn't happen with proper time bounds)
     console.warn(`Could not find scene at time ${time}s, defaulting to first scene`);
     return 0;
@@ -223,14 +227,14 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     if (index >= 0 && index < scenes.length) {
       console.log(`Selecting scene ${index + 1}`);
       setSelectedSceneIndex(index);
-      
+
       // Jump playhead to the start of the selected scene
       const sceneStartTime = getSceneStartTime(index, scenes);
       setCurrentTime(sceneStartTime);
-      
+
       // Stop playback when selecting a new scene manually
       if (isPlaying) setIsPlaying(false);
-      
+
       // Scroll to make the selected scene visible
       scrollToSelectedScene(index);
     }
@@ -241,7 +245,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     // Stop event propagation to prevent other handlers from firing
     e.preventDefault();
     e.stopPropagation();
-    
+
     console.log(`Scene ${index + 1} clicked`);
     handleSceneSelect(index);
   }, [handleSceneSelect]);
@@ -250,26 +254,26 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const handleAddScene = useCallback(() => {
     // Get the last scene or the first one if no scene is selected
     const sceneToAddFrom = scenes.length > 0 ? scenes[scenes.length - 1] : null;
-    
+
     if (sceneToAddFrom) {
       const newScene: SceneWithDuration = {
         ...sceneToAddFrom,
         duration: DEFAULT_SCENE_DURATION,
         id: `scene-${scenes.length}-${Date.now()}`,
       };
-      
+
       // Add the scene to the end of the array
       const updatedScenes = [...scenes, newScene];
-      
+
       setScenes(updatedScenes);
       recalculateTotalDuration(updatedScenes);
       setSelectedSceneIndex(scenes.length); // Select the newly added scene
-      
+
       // Scroll to the newly added scene after a short delay
       setTimeout(() => {
         scrollToSelectedScene(scenes.length);
       }, 50);
-      
+
       toast.success("Scene added to timeline.");
     } else {
       toast.error("Cannot add scene: No existing scenes.");
@@ -348,25 +352,25 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const handleExportVideo = useCallback(async () => {
     try {
       setIsExporting(true);
-      
+
       // Get scenes data
       const scenesData = scenes.map(scene => ({
         imageUrl: scene.imageUrl,
         duration: scene.duration
       }));
-      
+
       // Get voice-over data if available
       const voiceOverData = voiceOver ? {
         url: voiceOver.url,
         name: voiceOver.name
       } : undefined;
-      
+
       // Prepare request data
       const requestData = {
         scenes: scenesData,
         voiceOver: voiceOverData
       };
-      
+
       // Make API request to generate video
       const response = await fetch('/api/generate-video', {
         method: 'POST',
@@ -375,14 +379,14 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
         },
         body: JSON.stringify(requestData)
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to generate video: ${response.status} ${response.statusText}`);
       }
-      
+
       // Get video blob
       const videoBlob = await response.blob();
-      
+
       // Create download link
       const url = URL.createObjectURL(videoBlob);
       const a = document.createElement('a');
@@ -390,13 +394,13 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       a.download = 'storyboard_video.mp4';
       document.body.appendChild(a);
       a.click();
-      
+
       // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 100);
-      
+
       toast.success('Video exported successfully!');
     } catch (error) {
       console.error('Error exporting video:', error);
@@ -416,42 +420,42 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     // Clear any previous scenes to avoid stale data
     setScenes([]);
     setSelectedSceneIndex(null);
-    
+
     const storedScenes = localStorage.getItem('scriptVizScenes');
     console.log("StoryBoard: Loading scenes from localStorage", storedScenes ? "Found data" : "No data found");
-    
+
     let loadedScenes: SceneWithDuration[] = [];
     if (storedScenes) {
       try {
         const parsedScenes = JSON.parse(storedScenes);
         console.log("StoryBoard: Parsed scenes", parsedScenes);
-        
+
         // Check if we have valid scenes data
         if (!Array.isArray(parsedScenes)) {
           console.error("StoryBoard: Parsed scenes is not an array", parsedScenes);
           toast.error("Invalid scenes data format.");
           return;
         }
-        
+
         // Only include scenes that have an imageUrl
         const scenesWithImages = parsedScenes.filter((scene: any) => Boolean(scene.imageUrl));
         console.log("StoryBoard: Scenes with images", scenesWithImages.length);
-        
+
         if (scenesWithImages.length === 0) {
           toast.info("No scenes with images found in storage.");
           return;
         }
-        
+
         // Map the scenes to include duration
         loadedScenes = scenesWithImages.map((scene: any, index: number): SceneWithDuration => {
           // Ensure each scene has a valid duration
           const duration = typeof scene.duration === 'number' && scene.duration >= MIN_SCENE_DURATION
                       ? scene.duration
                       : DEFAULT_SCENE_DURATION;
-          
+
           // Ensure each scene has a valid ID
           const id = scene.id || `scene-${index}-${Date.now()}`;
-          
+
           const mappedScene = {
             ...scene,
             duration,
@@ -463,7 +467,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
 
         console.log("StoryBoard: Final loaded scenes", loadedScenes);
         toast.success(`Loaded ${loadedScenes.length} scenes.`);
-        
+
         // Preload all scene images
         preloadAllSceneImages(loadedScenes);
       } catch (error) {
@@ -475,13 +479,13 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
       toast.info("No scenes found in storage.");
       return;
     }
-    
+
     // Only update state if we have valid scenes
     if (loadedScenes.length > 0) {
       setScenes(loadedScenes);
       setSelectedSceneIndex(0); // Select the first scene
       setCurrentTime(0);
-      
+
       // Calculate total duration
       const totalDur = loadedScenes.reduce((sum, scene) => sum + scene.duration, 0);
       setTotalDuration(totalDur);
@@ -492,14 +496,14 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const preloadAllSceneImages = (scenes: SceneWithDuration[]) => {
     const toastId = toast.loading(`Preloading ${scenes.length} scene images...`);
     let loadedCount = 0;
-    
+
     // Create an array to track which images have loaded
     const imagePromises = scenes
       .filter(scene => scene.imageUrl)
       .map(scene => {
         return new Promise<void>((resolve) => {
           const img = new Image();
-          
+
           img.onload = () => {
             loadedCount++;
             if (loadedCount === scenes.length) {
@@ -508,7 +512,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
             }
             resolve();
           };
-          
+
           img.onerror = () => {
             console.error(`Failed to preload image: ${scene.imageUrl}`);
             loadedCount++;
@@ -518,12 +522,12 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
             }
             resolve();
           };
-          
+
           // Start loading the image
           img.src = scene.imageUrl as string;
         });
       });
-    
+
     // Wait for all images to load
     Promise.all(imagePromises)
       .then(() => {
@@ -538,32 +542,32 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const handleAddVoiceOver = useCallback((voiceOverFile: VoiceOverFile) => {
     setVoiceOver(voiceOverFile);
     setIsVoiceOverLoaded(true); // Assume it's loaded since Remotion will handle loading
-    
+
     // Update total duration to ensure it's at least as long as the voice-over
     if (voiceOverFile.duration > totalDuration) {
       console.log(`Voice-over duration (${voiceOverFile.duration}s) is longer than current timeline (${totalDuration}s). Adjusting timeline duration.`);
       setTotalDuration(voiceOverFile.duration);
-      
+
       // If we have captions, make sure they're properly synced with the new duration
       if (activeCaption && activeCaption.segments) {
         const lastSegmentEnd = activeCaption.segments.reduce((max, segment) => {
           return Math.max(max, segment.endTime);
         }, 0);
-        
+
         // If captions end before voice-over, adjust the timeline display
         if (lastSegmentEnd < voiceOverFile.duration) {
           console.log(`Captions end at ${lastSegmentEnd}s but voice-over is ${voiceOverFile.duration}s. Timeline will show full voice-over duration.`);
         }
       }
     }
-    
+
     // Ensure scenes cover at least the voice-over duration
     const totalScenesDuration = scenes.reduce((total, scene) => total + scene.duration, 0);
     if (totalScenesDuration < voiceOverFile.duration) {
       console.log(`Total scenes duration (${totalScenesDuration}s) is less than voice-over (${voiceOverFile.duration}s). Consider adding more scenes or extending existing ones.`);
       toast.info(`Voice-over is longer than your scenes. Consider adding more scenes or extending durations.`);
     }
-    
+
     toast.success('Voice-over added successfully');
   }, [totalDuration, setTotalDuration, scenes, activeCaption]);
 
@@ -572,7 +576,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     // Voice-over playback is now synchronized with the Remotion player
     // Just update the state to reflect that it's playing
     setIsVoiceOverPlaying(true);
-    
+
     // Start playback from the beginning if not already playing
     if (!isPlaying) {
       setIsPlaying(true);
@@ -582,7 +586,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   const handlePauseVoiceOver = useCallback(() => {
     // Voice-over pause is now synchronized with the Remotion player
     setIsVoiceOverPlaying(false);
-    
+
     // Pause the entire playback
     if (isPlaying) {
       setIsPlaying(false);
@@ -603,7 +607,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
 
     // Update the current caption text
     setCurrentCaptionText(activeSegment ? activeSegment.text : '');
-    
+
   }, [currentTime, captionSegments, isPlaying]);
 
   // Set caption segments when active caption changes
@@ -612,16 +616,49 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     console.log('Caption segments set:', segments);
   }, []);
 
+  // Handle applying Ken Burns effect to all scenes
+  const handleApplyKenBurnsToAllScenes = useCallback((_config: KenBurnsConfig) => {
+    if (scenes.length === 0) {
+      toast.error("No scenes available to apply Ken Burns effect.");
+      return;
+    }
+
+    // Create a Ken Burns automation instance
+    const kenBurnsAutomation = new KenBurnsAutomation();
+
+    // Apply Ken Burns effect to all scenes with the base config as a template
+    // The automation will generate variations based on this config
+    const updatedScenes = scenes.map(scene => {
+      // Generate a unique Ken Burns effect for this scene based on user's config
+      // We use the user's config as a starting point for the automation
+      const sceneConfig = kenBurnsAutomation.generateNextMove();
+
+      // Ensure the effect is enabled
+      sceneConfig.enabled = true;
+
+      // Apply the effect to the scene
+      return {
+        ...scene,
+        kenBurns: sceneConfig
+      };
+    });
+
+    // Update scenes with Ken Burns effect
+    setScenes(updatedScenes);
+
+    toast.success("Ken Burns effect applied to all scenes.");
+  }, [scenes]);
+
   // Playback timer logic
   useEffect(() => {
     let playbackInterval: NodeJS.Timeout | null = null;
-    
+
     if (isPlaying) {
       playbackInterval = setInterval(() => {
         setCurrentTime(prevTime => {
           // Calculate which scene we're in and the time within that scene
           let newTime = prevTime + 0.1; // Update every 100ms
-          
+
           // Check if we've reached the end of all scenes
           if (newTime >= totalDuration) {
             // Reset to the beginning and pause
@@ -629,11 +666,11 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
             setSelectedSceneIndex(0);
             return 0; // Reset time to 0
           }
-          
+
           // Find which scene we're in based on the current time
           let accumulatedTime = 0;
           let currentSceneIdx = 0;
-          
+
           for (let i = 0; i < scenes.length; i++) {
             accumulatedTime += scenes[i].duration;
             if (newTime < accumulatedTime) {
@@ -641,17 +678,17 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
               break;
             }
           }
-          
+
           // Update selected scene if it changed
           if (selectedSceneIndex !== currentSceneIdx) {
             setSelectedSceneIndex(currentSceneIdx);
           }
-          
+
           return newTime;
         });
       }, 100);
     }
-    
+
     return () => {
       if (playbackInterval) {
         clearInterval(playbackInterval);
@@ -662,7 +699,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
   // Update playhead position based on current time
   useEffect(() => {
     updatePlayheadPosition(currentTime, totalDuration);
-    
+
     // Update selected scene based on current time if not dragging
     if (!isDraggingLeftTrim && !isDraggingRightTrim && !isDraggingPlayhead) {
       const sceneIndex = getSceneIndexAtTime(currentTime, scenes, totalDuration);
@@ -686,7 +723,7 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     setScenes,
     selectedSceneIndex,
     setSelectedSceneIndex,
-    
+
     // Playback state
     currentTime,
     setCurrentTime,
@@ -695,18 +732,18 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     isPlaying,
     setIsPlaying,
     currentTimeDisplay,
-    
+
     // Voice-over state
     voiceOver,
     setVoiceOver,
     isVoiceOverPlaying,
     isVoiceOverLoaded,
-    
+
     // Caption state
     activeCaption,
     setActiveCaption,
     currentCaptionText,
-    
+
     // Trim state
     isTrimming,
     trimmingSceneIndex,
@@ -717,24 +754,24 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     setIsDraggingRightTrim,
     activeTrimDuration,
     setActiveTrimDuration,
-    
+
     // Playhead state
     isDraggingPlayhead,
     setIsDraggingPlayhead,
-    
+
     // Export state
     isExporting,
     setIsExporting,
-    
+
     // Sidebar state
     isSidebarExpanded,
     setIsSidebarExpanded,
-    
+
     // Refs
     timelineRulerRef,
     playheadRef,
     timelineRowRef,
-    
+
     // Functions
     recalculateTotalDuration,
     getSceneStartTime,
@@ -747,14 +784,17 @@ export const StoryboardProvider: React.FC<StoryboardProviderProps> = ({ children
     handleDeleteScene,
     handlePlayPause,
     handleExportVideo,
-    
+
     // Voice-over methods
     handleAddVoiceOver,
     handlePlayVoiceOver,
     handlePauseVoiceOver,
-    
+
     // Caption methods
     handleSetCaptionSegments,
+
+    // Ken Burns methods
+    handleApplyKenBurnsToAllScenes,
   };
 
   return (

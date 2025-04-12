@@ -20,14 +20,14 @@ export const StoryboardComposition: React.FC<StoryboardCompositionProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  
+
   // Calculate the total duration in frames
   const getTotalFrames = (scenes: SceneWithDuration[]) => {
     return scenes.reduce((acc, scene) => {
       return acc + Math.round(scene.duration * fps);
     }, 0);
   };
-  
+
   // Calculate frame offsets for each scene
   const getSceneFrameOffsets = (scenes: SceneWithDuration[]) => {
     let offset = 0;
@@ -42,9 +42,9 @@ export const StoryboardComposition: React.FC<StoryboardCompositionProps> = ({
       };
     });
   };
-  
+
   const sceneOffsets = getSceneFrameOffsets(scenes);
-  
+
   return (
     <AbsoluteFill style={{ backgroundColor: 'black' }}>
       {/* Render each scene as a sequence */}
@@ -54,16 +54,14 @@ export const StoryboardComposition: React.FC<StoryboardCompositionProps> = ({
           from={startFrame}
           durationInFrames={endFrame - startFrame + 1}
         >
-          <SceneFrame 
-            scene={scene} 
-            width={width} 
-            height={height} 
+          <SceneFrame
+            scene={scene}
             sceneStartTime={startTime}
             captionSegments={captionSegments}
           />
         </Sequence>
       ))}
-      
+
       {/* Add voice-over audio if available */}
       {voiceOverUrl && (
         <Audio src={voiceOverUrl} />

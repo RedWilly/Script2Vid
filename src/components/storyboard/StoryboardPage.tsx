@@ -11,7 +11,7 @@ import { RemotionTimeline } from './RemotionTimeline';
 
 // Inner component that uses the context
 const StoryboardContent = () => {
-  const { isSidebarExpanded, setIsSidebarExpanded } = useStoryboard();
+  const { isSidebarExpanded, setIsSidebarExpanded, handleApplyKenBurnsToAllScenes } = useStoryboard();
 
   // Function to close any open sidebars when clicking on the main content
   const handleMainContentClick = useCallback(() => {
@@ -27,6 +27,7 @@ const StoryboardContent = () => {
       <Sidebar
         isExpanded={isSidebarExpanded}
         onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
+        onApplyKenBurnsToAllScenes={handleApplyKenBurnsToAllScenes}
       />
 
       {/* Main content with padding to account for sidebar */}

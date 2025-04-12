@@ -1,4 +1,5 @@
 import { Scene } from "@/types";
+import { KenBurnsConfig } from "../effects/ken-burns-effect";
 
 // Extend the base Scene type with required duration
 export interface SceneWithDuration extends Scene {
@@ -9,6 +10,7 @@ export interface SceneWithDuration extends Scene {
   seed: number;
   imageGenerated: boolean;
   duration: number;
+  kenBurns?: KenBurnsConfig; // Ken Burns effect configuration
 }
 
 // Voice-over file interface
