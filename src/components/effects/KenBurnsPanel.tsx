@@ -12,7 +12,7 @@ interface KenBurnsPanelProps {
 
 /**
  * Ken Burns Effect Panel Component
- * 
+ *
  * A UI panel that allows users to configure Ken Burns effect settings:
  * - Zoom type (in, out, none)
  * - Direction (center, left, right, top, bottom, etc.)
@@ -27,8 +27,8 @@ export const KenBurnsPanel: React.FC<KenBurnsPanelProps> = ({
 }) => {
   // Handle zoom type change
   const handleZoomTypeChange = (zoomType: "in" | "out" | "none") => {
-    onChange({ 
-      ...config, 
+    onChange({
+      ...config,
       zoomType,
       enabled: zoomType !== "none"
     });
@@ -40,7 +40,7 @@ export const KenBurnsPanel: React.FC<KenBurnsPanelProps> = ({
   };
 
   // Handle speed change
-  const handleSpeedChange = (speed: "slow" | "moderate" | "fast") => {
+  const handleSpeedChange = (speed: "slow" | "moderate") => {
     onChange({ ...config, speed });
   };
 
@@ -254,23 +254,22 @@ export const KenBurnsPanel: React.FC<KenBurnsPanelProps> = ({
               >
                 <option value="slow">Slow</option>
                 <option value="moderate">Moderate</option>
-                <option value="fast">Fast</option>
               </select>
             </div>
           )}
         </div>
 
         {/* Apply to All Scenes Button */}
-        <Button 
+        <Button
           className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           onClick={onApplyToAllScenes}
         >
-          Apply Ken Burns to All Scenes
+          Generate Ken Burns to All Scenes
         </Button>
 
         <div className="text-xs text-gray-400 mt-2">
           <p>The Ken Burns effect creates a subtle zooming and panning motion on static images, adding visual interest to your scenes.</p>
-          <p className="mt-2">Clicking "Apply to All Scenes" will automatically generate a sequence of Ken Burns effects across all your scenes with varied zoom directions for a professional look.</p>
+          <p className="mt-2">Clicking "Generate Ken Burns to All Scenes" will automatically generate a sequence of Ken Burns effects across all your scenes with varied zoom directions for a professional look.</p>
         </div>
       </div>
     </div>

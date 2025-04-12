@@ -35,9 +35,9 @@ export interface KenBurnsConfig {
   direction: KenBurnsDirection;
 
   /**
-   * Speed of the effect: slow, moderate, fast
+   * Speed of the effect: slow or moderate
    */
-  speed: "slow" | "moderate" | "fast";
+  speed: "slow" | "moderate";
 }
 
 /**
@@ -71,7 +71,6 @@ export const getKenBurnsTransform = (
   // Define speed multipliers
   const speedMultiplier =
     config.speed === "slow" ? 0.5 :
-    config.speed === "fast" ? 1.5 :
     1; // moderate is default
 
   // Calculate translation values based on direction
