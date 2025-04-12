@@ -250,7 +250,7 @@ export const TimelineRuler = () => {
                 </div>
 
                 {/* Voice-over Track */}
-                <div className="flex h-[40px] w-full min-w-full bg-[#1a1f2c]/30 border-t border-[#1a1f2c]/50 relative">
+                <div className="flex h-[60px] w-full min-w-full bg-[#1a1f2c]/30 border-t border-[#1a1f2c]/50 relative">
                   {voiceOver ? (
                     <div
                       className={`h-full w-full flex flex-col ${isPlaying ? 'bg-blue-500/20' : 'bg-blue-500/10'}`}
