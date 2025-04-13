@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from 'fs/promises';
 import * as path from 'path';
 
-const jsonPath = path.join(import.meta.dir, 'test.json');
+const jsonPath = path.join(import.meta.dir, 'test1.json');
 
 const jsonData = await Bun.file(jsonPath).json();
 
